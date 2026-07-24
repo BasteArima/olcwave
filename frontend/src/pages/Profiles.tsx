@@ -16,6 +16,9 @@ import {
   UserCircleIcon,
   ExclamationCircleIcon,
   QuestionMarkCircleIcon,
+  DocumentTextIcon,
+  RectangleStackIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
 export default function Profiles() {
@@ -178,6 +181,32 @@ function Th({ children, className = '' }: { children: React.ReactNode; className
   )
 }
 
+const EXAMPLES_CACHE_KEY = 'profile-examples-cache'
+const EXAMPLES_CACHE_TTL = 10 * 60 * 1000
+
+interface ExamplesCache {
+  timestamp: number
+  files: { name: string; download_url: string }[]
+  contents: Record<string, string>
+}
+
+function getExamplesCache(): ExamplesCache | null {
+  try {
+    const raw = localStorage.getItem(EXAMPLES_CACHE_KEY)
+    if (!raw) return null
+    const data: ExamplesCache = JSON.parse(raw)
+    if (!data.timestamp || !Array.isArray(data.files)) return null
+    if (Date.now() - data.timestamp > EXAMPLES_CACHE_TTL) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
+function setExamplesCache(files: ExamplesCache['files'], contents: ExamplesCache['contents']) {
+  localStorage.setItem(EXAMPLES_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), files, contents }))
+}
+
 function FormError({ message }: { message: string }) {
   return (
     <div className="flex items-center gap-2 bg-danger/10 border border-danger/20 rounded-lg px-3 py-2.5 text-sm text-danger">
@@ -238,6 +267,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
   const [config, setConfig] = useState('')
   const [error, setError] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
+  const [examplesOpen, setExamplesOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
@@ -291,13 +321,29 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
               spellCheck={false}
             />
           </div>
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="secondary" onClick={() => { reset(); onClose() }}>Cancel</Button>
-            <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>Create Profile</Button>
+          <div className="flex justify-between gap-2 pt-1">
+            <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
+              <RectangleStackIcon className="w-4 h-4" />
+              Profile examples
+            </Button>
+
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => { reset(); onClose() }}>
+                Cancel
+              </Button>
+              <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>
+                Create Profile
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>
       <ProfileHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <ProfileExamplesModal
+        open={examplesOpen}
+        onClose={() => setExamplesOpen(false)}
+        onSelect={(yaml) => { setConfig(yaml); setExamplesOpen(false) }}
+      />
     </>
   )
 }
@@ -383,5 +429,141 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
       </Modal>
       <ProfileHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </>
+  )
+}
+
+function ProfileExamplesModal({ open, onClose, onSelect }: {
+  open: boolean
+  onClose: () => void
+  onSelect: (yaml: string) => void
+}) {
+  const [files, setFiles] = useState<{ name: string; download_url: string }[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loadFile, setLoadFile] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const cached = getExamplesCache()
+    if (cached) {
+      setFiles(cached.files)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setFiles(null)
+
+    fetch('https://api.github.com/repos/invdevv/olcWave/contents/docs/config_examples?ref=main')
+      .then((res) => {
+        if (!res.ok) throw new Error(`GitHub API error (${res.status})`)
+        return res.json()
+      })
+      .then((data) => {
+        if (!Array.isArray(data)) throw new Error('Invalid response from GitHub')
+        const yamlFiles = data
+          .filter((f: any) => f.type === 'file' && f.download_url && /\.(yaml|yml)$/i.test(f.name))
+          .map((f: any) => ({ name: f.name, download_url: f.download_url }))
+        setFiles(yamlFiles)
+        setExamplesCache(yamlFiles, {})
+        setLoading(false)
+      })
+      .catch((err) => {
+        setError((err as Error).message || 'Failed to load examples')
+        setLoading(false)
+      })
+  }, [open])
+
+  const handleFileClick = async (file: { name: string; download_url: string }) => {
+    const cached = getExamplesCache()
+    if (cached && cached.contents[file.download_url]) {
+      onSelect(cached.contents[file.download_url])
+      return
+    }
+
+    setLoadFile(file.name)
+    setError(null)
+    try {
+      const res = await fetch(file.download_url)
+      if (!res.ok) throw new Error(`Failed to load ${file.name}`)
+      const yaml = await res.text()
+
+      const cache = getExamplesCache()
+      if (cache) {
+        cache.contents[file.download_url] = yaml
+        setExamplesCache(cache.files, cache.contents)
+      }
+
+      onSelect(yaml)
+    } catch (err) {
+      setError((err as Error).message || `Failed to load ${file.name}`)
+    } finally {
+      setLoadFile(null)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Profile Examples">
+      <div className="space-y-2 min-h-[200px]">
+        {loading && (
+          <div className="flex flex-col items-center py-12">
+            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
+            <p className="text-sm text-text-muted">Loading examples...</p>
+          </div>
+        )}
+
+        {!loading && error && files === null && (
+          <div className="flex flex-col items-center py-12 px-4 text-center">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-danger/10 text-danger mb-3">
+              <ExclamationTriangleIcon className="w-5 h-5" />
+            </div>
+            <p className="text-sm text-text-primary font-medium">Failed to load examples</p>
+            <p className="text-xs text-text-muted mt-1">{error}</p>
+          </div>
+        )}
+
+        {!loading && files !== null && files.length === 0 && (
+          <div className="flex flex-col items-center py-12">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-bg-tertiary text-text-muted mb-3">
+              <DocumentTextIcon className="w-5 h-5" />
+            </div>
+            <p className="text-sm text-text-secondary">No example files found</p>
+          </div>
+        )}
+
+        {!loading && files !== null && files.length > 0 && (
+          <div>
+            {error && (
+              <div className="flex items-center gap-2 bg-danger/10 border border-danger/20 rounded-lg px-3 py-2 text-xs text-danger mb-3">
+                <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            <div className="max-h-80 overflow-y-auto -mx-1 space-y-0.5">
+              {files.map((file) => (
+                <button
+                  key={file.download_url}
+                  onClick={() => handleFileClick(file)}
+                  disabled={loadFile === file.name}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-text-primary
+                    hover:bg-bg-hover transition-colors cursor-pointer disabled:opacity-50
+                    disabled:cursor-default flex items-center gap-3"
+                >
+                  {loadFile === file.name ? (
+                    <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <DocumentTextIcon className="w-4 h-4 text-text-muted shrink-0" />
+                  )}
+                  <span className="font-mono text-xs">{file.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
   )
 }
