@@ -12,7 +12,6 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { Card, ErrorState, EmptyState, Skeleton } from '../components/ui/Misc'
 import {
   MagnifyingGlassIcon,
-  PencilIcon,
   TrashIcon,
   PlusIcon,
   ArrowPathIcon,
@@ -128,7 +127,11 @@ export default function Profiles() {
                 )}
                 {!isLoading &&
                   filtered.map((profile) => (
-                    <tr key={profile.tag} className="hover:bg-bg-hover transition-colors group">
+                      <tr
+                        key={profile.tag}
+                        onClick={() => setEditProfile(profile)}
+                        className="hover:bg-bg-hover transition-colors group cursor-pointer"
+                      >
                       <td className="px-5 py-3">
                         <span className="text-sm text-text-primary font-medium">{profile.name}</span>
                       </td>
@@ -141,14 +144,10 @@ export default function Profiles() {
                       <td className="px-5 py-3 text-right">
                         <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => setEditProfile(profile)}
-                            className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors cursor-pointer"
-                            title="Edit"
-                          >
-                            <PencilIcon className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteProfile(profile)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteProfile(profile)
+                            }}
                             className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer"
                             title="Delete"
                           >

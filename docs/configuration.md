@@ -119,14 +119,12 @@ JWT_SECRET_KEY=change_me
 
 **Измените его на длинную случайную строку.**
 
-Любой, кто знает этот ключ, сможет создавать поддельные admin-токены.
-
 После смены ключа все существующие сессии станут недействительными.
 
 Сгенерировать:
 
 ```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+openssl rand -hex 32
 ```
 
 ---
@@ -223,11 +221,7 @@ VITE_SUB_URL_TEMPLATE=https://olcsub.example.org/{uuid}
 {uuid}
 ```
 
-заменяется на короткий UUID пользователя:
-
-```
-https://olcsub.example.org/{uuid}  →  https://olcsub.example.org/rfWMHbDFsH_cPXRz
-```
+заменяется на короткий UUID пользователя
 
 Если оставить пустым, UI использует:
 

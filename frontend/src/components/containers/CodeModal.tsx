@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Modal from '../ui/Modal'
+import Button from '../ui/Button'
 import { LoadingState, ErrorState } from '../ui/Misc'
 import {
   ClipboardDocumentIcon,
@@ -32,6 +33,22 @@ export default function CodeModal({
 }: CodeModalProps) {
   const [copied, setCopied] = useState(false)
 
+  const preRef = useRef<HTMLPreElement>(null)
+
+  const scrollToBottom = useCallback(() => {
+    const el = preRef.current
+    if (!el) return
+
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    scrollToBottom()
+  }, [open, content, scrollToBottom])
+
   const copy = () => {
     navigator.clipboard.writeText(content)
     setCopied(true)
@@ -43,27 +60,31 @@ export default function CodeModal({
       <div className="space-y-3">
         <div className="flex items-center justify-end gap-1.5">
           {onRefresh && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={refreshing}
               onClick={onRefresh}
-              className="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs font-medium rounded-md
-                text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors cursor-pointer"
               title="Refresh"
             >
-              <ArrowPathIcon className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              {!refreshing && <ArrowPathIcon className="w-3.5 h-3.5" />}
               Refresh
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={copy}
             disabled={!content}
-            className="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs font-medium rounded-md
-              text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors cursor-pointer
-              disabled:opacity-40 disabled:pointer-events-none"
             title="Copy to clipboard"
           >
-            {copied ? <CheckIcon className="w-3.5 h-3.5 text-success" /> : <ClipboardDocumentIcon className="w-3.5 h-3.5" />}
+            {copied ? (
+              <CheckIcon className="w-3.5 h-3.5 text-success" />
+            ) : (
+              <ClipboardDocumentIcon className="w-3.5 h-3.5" />
+            )}
             {copied ? 'Copied' : 'Copy'}
-          </button>
+          </Button>
         </div>
 
         {loading ? (
@@ -75,8 +96,11 @@ export default function CodeModal({
             <ErrorState message={error} onRetry={onRefresh} />
           </div>
         ) : (
-          <pre className="bg-bg-primary border border-border rounded-lg p-4 text-xs font-mono leading-relaxed
-            text-text-secondary overflow-auto max-h-[60vh] whitespace-pre-wrap break-words">
+          <pre
+            ref={preRef}
+            className="bg-bg-primary border border-border rounded-lg p-4 text-xs font-mono leading-relaxed
+              text-text-secondary overflow-auto max-h-[60vh] whitespace-pre-wrap break-words"
+          >
             {content || 'No content'}
           </pre>
         )}

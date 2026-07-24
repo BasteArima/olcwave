@@ -59,10 +59,9 @@ Client ──GET /sub/{uuid}──► Backend ──validate──► Remnawave
 
 ### Форматы вывода подписки
 
-Код может отображать конфигурации двумя способами:
+Код может отображать конфигурации так:
 
-* **OLCBox v5 bundle** (`olcrtc_to_olcbox_lbv4`) - JSON-объект с `version: 5`, `active_location_id` и массивом `locations`. Именно это возвращает `GET /sub/{uuid}`. Страница Subscriptions панели отображает этот bundle.
-* **Компактные `olcrtc://` URI** (`config_to_uri`, `config_to_olcbox_uri`) - однострочные URI, используемые для создания человекочитаемого текста подписки с заголовками `#name` / `##icon`.
+* **Sub.md `olcrtc://` URI** (`config_to_uri`) - однострочные URI, используемые для создания текста подписки с заголовками `#name` / `##icon`.
 
 ## Контейнеры
 
