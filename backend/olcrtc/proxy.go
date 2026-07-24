@@ -10,6 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"context"
+	"golang.org/x/net/proxy"
 
 	socks5 "github.com/armon/go-socks5"
 )
@@ -19,6 +21,10 @@ type AppConfig struct {
 	StatsFile     string
 	FlushInterval time.Duration
 	LogPrefix     string
+
+	UpstreamAddr string
+	UpstreamUser string
+	UpstreamPass string
 }
 
 type StatsSnapshot struct {
@@ -234,6 +240,10 @@ func loadConfig() AppConfig {
 		StatsFile:     getenvDefault("STATS_FILE", "/var/lib/olcwave/stats.json"),
 		FlushInterval: getenvDurationDefault("FLUSH_INTERVAL", time.Second),
 		LogPrefix:     getenvDefault("LOG_PREFIX", "proxy"),
+
+		UpstreamAddr: getenvDefault("UPSTREAM_SOCKS", ""),
+		UpstreamUser: getenvDefault("UPSTREAM_USER", ""),
+		UpstreamPass: getenvDefault("UPSTREAM_PASS", ""),
 	}
 }
 
@@ -257,9 +267,46 @@ func getenvDurationDefault(key string, def time.Duration) time.Duration {
 	return d
 }
 
+func buildDialer(cfg AppConfig) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	if cfg.UpstreamAddr == "" {
+		log.Printf("using direct connections")
+
+		return func(ctx context.Context, network, addr string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, network, addr)
+		}
+	}
+
+	var auth *proxy.Auth
+
+	if cfg.UpstreamUser != "" {
+		auth = &proxy.Auth{
+			User:     cfg.UpstreamUser,
+			Password: cfg.UpstreamPass,
+		}
+	}
+
+	d, err := proxy.SOCKS5(
+		"tcp",
+		cfg.UpstreamAddr,
+		auth,
+		&net.Dialer{},
+	)
+	if err != nil {
+		log.Fatalf("upstream socks init: %v", err)
+	}
+
+	log.Printf("using upstream socks %s", cfg.UpstreamAddr)
+
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return d.Dial(network, addr)
+	}
+}
+
 func main() {
 	cfg := loadConfig()
 	stats := NewStatsManager()
+	dial := buildDialer(cfg)
 
 	log.SetPrefix(cfg.LogPrefix + ": ")
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
@@ -278,6 +325,7 @@ func main() {
 	server, err := socks5.New(&socks5.Config{
 		Rules:  socks5.PermitAll(),
 		Logger: log.New(os.Stdout, "", log.LstdFlags|log.Lmicroseconds),
+		Dial:   dial,
 	})
 	if err != nil {
 		log.Fatalf("socks5 init: %v", err)
