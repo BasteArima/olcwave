@@ -11,38 +11,50 @@ from routing.db import RoutingDB
 
 class Routing:
     @staticmethod
-    def get_socks_port(xray_json: str) -> int:
-        xray_config = json.loads(xray_json)
-        if xray_config.get("inbounds", None) and len(xray_config["inbounds"]) >= 1:
-            socks_inbound = xray_config["inbounds"][0]
-            if socks_inbound.get("protocol") != "socks":
-                raise HTTPException(422, detail="Invalid config, needs to be exactly 1 socks inbound")
-            socks_port = socks_inbound["port"]
-            if str(socks_port).isdigit() and 1 < int(socks_port) < 65535:
-                return int(socks_port)
-            else:
-                raise HTTPException(422, detail="Invalid config, needs to be exactly 1 socks inbound")
-        else:
-            raise HTTPException(422, detail="Invalid config, needs to be exactly 1 socks inbound")
+    def routing_to_xray_json(routing: str):
+        xray_config = json.loads(routing)
+        xray_config["dns"] = {"servers": [{"address": "1.1.1.1"}],"queryStrategy": "IPIfNonMatch"}
+        xray_config["inbounds"] = [{
+            "tag": "socks",
+            "listen": "0.0.0.0",
+            "port": 10808,
+            "protocol": "socks",
+            "settings": {
+                "auth": "noauth",
+                "udp": True
+            },
+            "sniffing": {
+                "enabled": True,
+                "destOverride": [
+                "http",
+                "tls",
+                "fakedns"
+                ]
+            }
+            }
+        ]
 
+        return json.dumps(xray_config, indent=2)
 
     @staticmethod
-    async def create(xray_json: str):
+    async def create(routing: str):
         from olcrtc.service import Containers
+
+        xray_json = Routing.routing_to_xray_json(routing)
+
         async with async_session_factory() as db:  
             _= await RoutingDB.create(db, xray_json)
 
-        socks_port =Routing.get_socks_port(xray_json)
 
         settings = SettingsService.get()
         settings.xray_routing_enabled = True
-        settings.xray_routing_inbound_port = socks_port 
+
         await SettingsService.set(settings)
 
         XrayCore.run(xray_json)
 
         for container in Containers.all():
-            Containers.restart(container.name, upstream_proxy_addr=f"host.docker.internal:{str(socks_port)}")
+            Containers.restart(container.name, upstream_proxy_addr=f"host.docker.internal:10808")
 
         return xray_json
 
@@ -53,21 +65,21 @@ class Routing:
         return xray_json
 
     @staticmethod
-    async def update(xray_json: str):
+    async def update(routing: str):
         from olcrtc.service import Containers
+
+        xray_json = Routing.routing_to_xray_json(routing)
+
         async with async_session_factory() as db:  
             _= await RoutingDB.update(db, xray_json) 
 
-        socks_port =Routing.get_socks_port(xray_json)
-
         settings = SettingsService.get()
-        settings.xray_routing_inbound_port = socks_port 
         await SettingsService.set(settings)
 
         XrayCore.run(xray_json)
 
         for container in Containers.all():
-            Containers.restart(container.name, upstream_proxy_addr=f"host.docker.internal:{str(socks_port)}")
+            Containers.restart(container.name, upstream_proxy_addr=f"host.docker.internal:10808")
         
         return xray_json
 
@@ -80,7 +92,6 @@ class Routing:
 
         settings = SettingsService.get()
         settings.xray_routing_enabled = False
-        settings.xray_routing_inbound_port = 0
         
         await SettingsService.set(settings)
 

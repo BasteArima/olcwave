@@ -40,9 +40,8 @@ class Containers:
     @staticmethod
     def run(config: str, config_tag: str, short_uuid: str):
         routing_socks_addr = ""
-        socks_port = SettingsService.get().xray_routing_inbound_port
-        if SettingsService.get().xray_routing_enabled and socks_port:
-            routing_socks_addr = f"host.docker.internal:{socks_port}"
+        if SettingsService.get().xray_routing_enabled:
+            routing_socks_addr = f"host.docker.internal:10808"
 
         OlcRTC.run(config, config_tag, short_uuid, routing_socks_addr)
 

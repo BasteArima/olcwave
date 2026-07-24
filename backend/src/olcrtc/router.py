@@ -40,8 +40,8 @@ async def stop(name: str, _admin: dict = Depends(get_current_admin)):
 @router.post("/restart")
 async def restart(name: str, _admin: dict = Depends(get_current_admin)):
     settings = SettingsService.get()
-    if settings.xray_routing_enabled and settings.xray_routing_inbound_port:
-        Containers.restart(name, f"host.docker.internal:{settings.xray_routing_inbound_port}")
+    if settings.xray_routing_enabled:
+        Containers.restart(name, f"host.docker.internal:10808")
     else:
         Containers.restart(name)
 

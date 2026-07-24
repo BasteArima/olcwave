@@ -26,7 +26,6 @@ class RuntimeSettings(BaseModel):
     sync_interval: str = "4h"
     last_sync_at: datetime | None = None
     xray_routing_enabled: bool = False
-    xray_routing_inbound_port: int = 0
 
     @field_validator("sub_update_interval")
     @classmethod
