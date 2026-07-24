@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { profilesApi } from '../api/profiles'
 import type { Profile, YamlValidationResult } from '../types'
 import { validateYaml } from '../utils/yamlValidator'
+import { stripProfileFields } from '../utils/profileConfig'
 import { checkTagUniqueness } from '../utils/tagValidator'
 import { useDebounce } from '../utils/useDebounce'
 import Button from '../components/ui/Button'
@@ -442,7 +443,7 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
   useEffect(() => {
     if (profile) {
       setName(profile.name)
-      setConfig(profile.profile)
+      setConfig(stripProfileFields(profile.profile))
       setYamlResult(null)
       setError('')
     }

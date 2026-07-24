@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { routingApi } from '../api/routing'
-import { validateRoutingJson, type RoutingValidationResult } from '../utils/routingValidator'
+import { validateRoutingJson, stripRoutingFields, type RoutingValidationResult } from '../utils/routingValidator'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -59,12 +59,19 @@ function handleTextareaTab(
 function ValidationStatus({ result }: { result: RoutingValidationResult | null }) {
   if (!result) return null
 
+  const hasWarnings = result.warnings.length > 0
+  const statusClass = result.valid
+    ? hasWarnings ? 'text-warning' : 'text-success'
+    : 'text-danger'
+
   return (
-    <span className={`text-xs font-medium flex items-center gap-1 ${
-      result.valid ? 'text-success' : 'text-danger'
-    }`}>
+    <span className={`text-xs font-medium flex items-center gap-1 ${statusClass}`}>
       {result.valid ? (
-        <CheckCircleIcon className="w-3.5 h-3.5" />
+        hasWarnings ? (
+          <ExclamationTriangleIcon className="w-3.5 h-3.5" />
+        ) : (
+          <CheckCircleIcon className="w-3.5 h-3.5" />
+        )
       ) : (
         <XCircleIcon className="w-3.5 h-3.5" />
       )}
@@ -74,19 +81,37 @@ function ValidationStatus({ result }: { result: RoutingValidationResult | null }
 }
 
 function ValidationErrors({ result }: { result: RoutingValidationResult | null }) {
-  if (!result || result.valid || result.errors.length === 0) return null
+  if (!result) return null
 
   return (
-    <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
-      <p className="text-xs font-semibold text-danger">Config validation errors:</p>
-      <ul className="space-y-1">
-        {result.errors.map((err, i) => (
-          <li key={i} className="text-xs text-danger flex gap-2">
-            <span className="shrink-0">-</span>
-            <span>{err.path ? <><strong>{err.path}:</strong> {err.message}</> : err.message}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-2">
+      {result.errors.length > 0 && (
+        <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
+          <p className="text-xs font-semibold text-danger">Validation errors:</p>
+          <ul className="space-y-1">
+            {result.errors.map((err, i) => (
+              <li key={i} className="text-xs text-danger flex gap-2">
+                <span className="shrink-0">-</span>
+                <span>{err.path ? <><strong>{err.path}:</strong> {err.message}</> : err.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.warnings.length > 0 && (
+        <div className="bg-warning/5 border border-warning/15 rounded-lg px-3 py-2.5 space-y-1">
+          <p className="text-xs font-semibold text-warning">Warnings:</p>
+          <ul className="space-y-1">
+            {result.warnings.map((warn, i) => (
+              <li key={i} className="text-xs text-warning flex gap-2">
+                <span className="shrink-0">-</span>
+                <span>{warn.path ? <><strong>{warn.path}</strong> {warn.message}</> : warn.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -114,7 +139,7 @@ export default function Routing() {
 
   useEffect(() => {
     if (serverConfig !== undefined) {
-      setEditorConfig(serverConfig)
+      setEditorConfig(stripRoutingFields(serverConfig))
       setConfiguring(false)
     }
   }, [serverConfig])
@@ -317,7 +342,7 @@ function ConfiguringSection({
               value={config}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={(e) => handleTextareaTab(e, config, onChange)}
-              placeholder={`Paste xray-core routing config here...\n\n{\n  "routing": {\n    "rules": [...]\n  },\n  "inbounds": [...],\n  "outbounds": [...]\n}`}
+              placeholder={`Paste xray-core routing config here...\n\n{\n  "routing": {\n    "rules": [...]\n  },\n  "outbounds": [...]\n}`}
               rows={20}
               className="bg-bg-tertiary border border-border rounded-md px-3 py-2.5 text-sm text-text-primary leading-relaxed
                 placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30
@@ -449,13 +474,12 @@ function RoutingHelpModal({ open, onClose }: { open: boolean; onClose: () => voi
           <p className="font-semibold text-text-primary mb-1">Required structure</p>
           <ul className="space-y-1 text-text-secondary">
             <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">routing.rules</code> — array of routing rules (at least one required)</li>
-            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">inbounds</code> — exactly <strong>one</strong> inbound with <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">protocol: socks</code></li>
             <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">outbounds</code> — your outbound proxies / direct / block</li>
           </ul>
         </section>
         <section>
-          <p className="font-semibold text-text-primary mb-1">Why one socks inbound?</p>
-          <p className="text-text-secondary">All OLCRTC containers connect to a single local SOCKS5 proxy. The port from your inbound config is used internally — don't change it after enabling.</p>
+          <p className="font-semibold text-text-primary mb-1">Note</p>
+          <p className="text-text-secondary">If you include <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">dns</code> or <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">inbounds</code> in your config, they will be ignored. OLCWave generates these automatically.</p>
         </section>
         <section className="bg-bg-tertiary rounded-lg px-3 py-2.5">
           <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Minimal example</p>
@@ -468,15 +492,6 @@ function RoutingHelpModal({ open, onClose }: { open: boolean; onClose: () => voi
       }
     ]
   },
-  "inbounds": [
-    {
-      "tag": "socks",
-      "listen": "127.0.0.1",
-      "port": 10808,
-      "protocol": "socks",
-      "settings": { "auth": "noauth", "udp": true }
-    }
-  ],
   "outbounds": [
     { "tag": "direct", "protocol": "freedom" },
     { "tag": "block", "protocol": "blackhole" }
