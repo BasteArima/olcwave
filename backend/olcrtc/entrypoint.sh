@@ -20,14 +20,14 @@ EOF
 export LISTEN_ADDR="${PROXY_BIND_ADDR}:${PROXY_PORT}"
 export STATS_FILE
 
-if [ -n "${UPSTREAM_SOCKS_ADDR:-}" ]; then
-  export UPSTREAM_SOCKS_ADDR
+if [ -n "${UPSTREAM_SOCKS:-}" ]; then
+  export UPSTREAM_SOCKS
 fi
-if [ -n "${UPSTREAM_SOCKS_HOST:-}" ]; then
-  export UPSTREAM_SOCKS_HOST
+if [ -n "${UPSTREAM_USER:-}" ]; then
+  export UPSTREAM_USER
 fi
-if [ -n "${UPSTREAM_SOCKS_PORT:-}" ]; then
-  export UPSTREAM_SOCKS_PORT
+if [ -n "${UPSTREAM_PASS:-}" ]; then
+  export UPSTREAM_PASS
 fi
 
 /app/proxy &
