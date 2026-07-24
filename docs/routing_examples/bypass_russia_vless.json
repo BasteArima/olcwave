@@ -1,12 +1,4 @@
 {
-  "dns": {
-    "servers": [
-      {
-        "address": "1.1.1.1"
-      }
-    ],
-    "queryStrategy": "IPIfNonMatch"
-  },
   "routing": {
     "domainMatcher": "hybrid",
     "domainStrategy": "IPIfNonMatch",
@@ -39,26 +31,6 @@
       }
     ]
   },
-  "inbounds": [
-    {
-      "tag": "socks",
-      "listen": "127.0.0.1",
-      "port": 10808,
-      "protocol": "socks",
-      "settings": {
-        "auth": "noauth",
-        "udp": true
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls",
-          "fakedns"
-        ]
-      }
-    }
-  ],
   "outbounds": [
     {
       "tag": "proxy",
