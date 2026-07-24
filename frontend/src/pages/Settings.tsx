@@ -18,14 +18,40 @@ const SYNC_OPTIONS = [
   { value: '30s', label: 'Every 30 seconds' },
   { value: '5m', label: 'Every 5 minutes' },
   { value: '1h', label: 'Every hour' },
+  { value: '2h', label: 'Every 2 hours' },
   { value: '4h', label: 'Every 4 hours' },
+  { value: '6h', label: 'Every 6 hours' },
+  { value: '8h', label: 'Every 8 hours' },
   { value: '12h', label: 'Every 12 hours' },
   { value: '24h', label: 'Once a day' },
-  { value: '__other__', label: 'Other' },
 ]
 
 function isValidInterval(val: string): boolean {
   return /^[1-9]\d*[smh]$/.test(val)
+}
+
+function isValidDuration(val: string): boolean {
+  return /^[1-9]\d*[mhd]$/.test(val)
+}
+
+function parseDurationMinutes(val: string): number | null {
+  const match = val.match(/^(\d+)([mhd])$/)
+  if (!match) return null
+  const number = parseInt(match[1], 10)
+  const unit = match[2]
+  const multiplier: Record<string, number> = { m: 1, h: 60, d: 1440 }
+  return number * multiplier[unit]
+}
+
+function getDurationError(val: string): string {
+  if (!isValidDuration(val)) {
+    return 'Invalid format. Use <number> + m/h/d (e.g. 5m, 1h, 7d).'
+  }
+  const minutes = parseDurationMinutes(val)
+  if (minutes === null) return 'Invalid duration.'
+  if (minutes < 5) return 'Interval must be at least 5m.'
+  if (minutes > 43200) return 'Interval must be at most 30d.'
+  return ''
 }
 
 function formatDatetime(iso: string | null): string {
@@ -57,7 +83,7 @@ export default function Settings() {
 
     setSubName(settings.sub_name)
     setDefaultTrafficGb(bytesToGB(settings.default_traffic_limit).toFixed(2))
-    setSubUpdateInterval(String(settings.sub_update_interval))
+    setSubUpdateInterval(settings.sub_update_interval)
     setCollectInterval(String(settings.traffic_collect_interval))
     setSyncInterval(settings.sync_interval)
     setCustomSync('')
@@ -81,12 +107,13 @@ export default function Settings() {
   const isCustom = !SYNC_OPTIONS.some((o) => o.value === syncInterval)
   const effectiveSync = isCustom ? customSync : syncInterval
   const syncError = isCustom && customSync && !isValidInterval(customSync) ? 'Invalid format. Use number + s/m/h (e.g. 10m, 4h).' : ''
+  const subIntervalError = subUpdateInterval ? getDurationError(subUpdateInterval) : ''
 
   const handleSave = () => {
     saveMutation.mutate({
       sub_name: subName,
       default_traffic_limit: gbToBytes(parseFloat(defaultTrafficGb) || 0),
-      sub_update_interval: parseInt(subUpdateInterval, 10) || 1,
+      sub_update_interval: subUpdateInterval || '1h',
       traffic_collect_interval: parseInt(collectInterval, 10) || 10,
       sync_interval: effectiveSync || '1h',
       last_sync_at: lastSyncAt,
@@ -125,14 +152,12 @@ export default function Settings() {
             disabled={isLoading}
           />
           <Input
-            label="Subscription update interval (hours)"
-            type="number"
-            min="1"
-            step="1"
+            label="Subscription update interval"
             value={subUpdateInterval}
             onChange={(e) => setSubUpdateInterval(e.target.value)}
-            placeholder="e.g. 1"
-            hint="How often client updates subscription"
+            placeholder="e.g. 1h"
+            hint="Format: number + m/h/d (5m–30d)"
+            error={subIntervalError}
             disabled={isLoading}
           />
           <Input
@@ -147,7 +172,7 @@ export default function Settings() {
             disabled={isLoading}
           />
           <div className="flex justify-end pt-1">
-            <Button onClick={handleSave} loading={saveMutation.isPending} disabled={isLoading}>
+            <Button onClick={handleSave} loading={saveMutation.isPending} disabled={isLoading || !!subIntervalError}>
               Save settings
             </Button>
           </div>
