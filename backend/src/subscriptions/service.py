@@ -178,6 +178,11 @@ class Subscriptions:
     async def get(short_uuid: str): 
         rw_sub = await isUserValid(short_uuid)
         if not rw_sub:
+            for cont in OlcRTC.all():
+                if cont.name.startswith("olcwave-") and short_uuid in cont.name:  # pyright: ignore[reportOperatorIssue]
+                    OlcRTC.stop(cont.name)  # pyright: ignore[reportArgumentType]
+                    OlcRTC.remove(cont.name)  # pyright: ignore[reportArgumentType]
+
             return Response(status_code=404)
         try:
             _=await Users.get(short_uuid)
