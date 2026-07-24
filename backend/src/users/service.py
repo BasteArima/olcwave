@@ -100,13 +100,15 @@ class Users:
                     db_user.expires_at != rw_user.expire_at
                     or db_user.name != rw_user.username
                 ):
-                    await Users.update(
-                        UserSchema(
-                            short_uuid=rw_user.short_uuid,
-                            name=rw_user.username,
-                            expires_at=rw_user.expire_at,
-                        ),
+                    updated_user = db_user.model_copy(
+                        update={
+                            "name": rw_user.username,
+                            "expires_at": rw_user.expire_at,
+                        }
                     )
+                    
+                    await Users.update(updated_user)
+                    
                     updated += 1
 
         for short_uuid in db_map:
