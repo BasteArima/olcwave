@@ -107,7 +107,7 @@ install_base_packages() {
     if ! command -v apt-get >/dev/null; then
       die "This installer supports Debian/Ubuntu only."
     fi
-    
+
     info "Installing base packages..."
 
     apt-get update
@@ -251,7 +251,7 @@ collect_input() {
   PANEL_URL="https://${PANEL_DOMAIN}"
   VITE_API_URL="https://${PANEL_DOMAIN}/api"
 
-  ROOT_DOMAIN="$(awk -F. '{if (NF > 2) print $(NF-1)"."$NF; else print}' <<< "$PANEL_DOMAIN")"
+  ROOT_DOMAIN="${PANEL_DOMAIN#*.}"
 
   ask SUB_DOMAIN "Subscription domain (e.g. sub.example.com)" "olcsub.${ROOT_DOMAIN}"
   SUB_URL_TEMPLATE="https://${SUB_DOMAIN}/{uuid}"
