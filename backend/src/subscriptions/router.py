@@ -7,4 +7,4 @@ router = APIRouter(prefix="/sub", tags=["subscriptions"])
 async def get(short_uuid: str):
     sub = await Subscriptions.get(short_uuid)
     
-    return Response(content=sub, headers={"profile-update-interval": "1"}, media_type="text/plain")
+    return sub
