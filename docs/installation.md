@@ -69,7 +69,7 @@ cd ../..
 ```
 ---
 
-# 5. Сборка olcrtc контейнера
+# 5. Сборка xraycore контейнера
 
 ```bash
 cd backend/xraycore
@@ -283,6 +283,8 @@ olcwave-caddy
 Up
 ```
 
+Если routing включён, также будет запущен `olcwave-xraycore`.
+
 Проверить логи API:
 
 ```bash
@@ -333,6 +335,8 @@ git pull
 cd frontend && npm ci && npm run build && cd ..
 
 cd backend/olcrtc && docker build . --tag olcrtc && cd ../..
+
+cd backend/xraycore && docker build . --tag xraycore && cd ../..
 
 docker compose up -d --build
 ```

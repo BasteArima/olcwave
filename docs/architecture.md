@@ -8,9 +8,10 @@
 | ------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Frontend      | (нет - статические файлы обслуживаются Caddy) | React SPA, административный интерфейс                                                               |
 | Backend       | `olcwave-api`                                 | FastAPI. Вся логика. Взаимодействует с Postgres, Remnawave и Docker socket.                         |
-| Database      | `olcwave-postgres`                            | PostgreSQL 16. Пользователи + профили + счетчики трафика.                                           |
+| Database      | `olcwave-postgres`                            | PostgreSQL 16. Пользователи + профили + счетчики трафика + routing-конфигурация.                     |
 | Reverse proxy | `olcwave-caddy`                               | Обслуживает SPA, проксирует API, завершает HTTPS.                                                   |
 | OLCRTC        | `olcwave-<tag>-<uuid>`                        | Один на пару (профиль, пользователь). Фактический transport + SOCKS proxy, записывающий статистику. |
+| XrayCore      | `olcwave-xraycore`                            | Контейнер с Xray-core. Маршрутизирует трафик OLCRTC через внешние прокси (опционально).             |
 
 API-контейнер монтирует `/var/run/docker.sock`, поэтому он напрямую управляет Docker daemon хоста - именно так он собирает образ `olcrtc` и запускает/останавливает OLCRTC-контейнеры.
 
@@ -56,6 +57,14 @@ Client ──GET /sub/{uuid}──► Backend ──validate──► Remnawave
                                │      generate config → docker run
                                └─ return OLCBox bundle
 ```
+
+Если routing включён, OLCRTC-контейнеры направляют свой исходящий трафик через `olcwave-xraycore`:
+
+```
+OLCRTC ──socks5:10808──► olcwave-xraycore ──► proxy/direct/block
+```
+
+Подробнее о routing см. [routing.md](routing.md).
 
 ### Форматы вывода подписки
 
@@ -135,6 +144,30 @@ Entry point записывает переменную окружения `CONFIG
 ### Сброс
 
 `POST /users/traffic/reset` (кнопка в модальном окне редактирования пользователя) устанавливает `traffic_used_bytes` обратно в 0. Вместе с изменением лимита или срока действия это используется для "продления" пользователя. Обратите внимание: счетчик внутри контейнера не сбрасывается - логика delta обработает это при следующем тике.
+
+## Routing
+
+Routing — опциональная функция, маршрутизирующая трафик OLCRTC-контейнеров через внешние прокси. Подробное описание см. в [routing.md](routing.md).
+
+### Компоненты
+
+* **XrayCore** (`backend/xray_core/sdk.py`) — Docker SDK wrapper для контейнера `olcwave-xraycore`. Управляет запуском/остановкой Xray-core.
+* **Routing service** (`backend/src/routing/service.py`) — бизнес-логика: сборка полной конфигурации Xray из пользовательского JSON (добавление `dns` и `inbounds`), управление записью в БД, перезапуск контейнеров.
+* **Routing DB** (`backend/src/routing/db.py`) — хранение конфигурации в таблице `routing` (одна запись `id=1`).
+* **Routing router** (`backend/src/routing/router.py`) — API-эндпоинты `/api/routing/*`.
+
+### При включении routing
+
+1. Backend собирает полную Xray-конфигурацию из JSON пользователя.
+2. Запускается контейнер `olcwave-xraycore` на порту `10808`.
+3. Все OLCRTC-контейнеры перезапускаются с `UPSTREAM_SOCKS=host.docker.internal:10808`.
+4. В `RuntimeSettings` устанавливается `xray_routing_enabled=True`.
+
+### При отключении routing
+
+1. Контейнер `olcwave-xraycore` останавливается.
+2. Все OLCRTC-контейнеры перезапускаются без `UPSTREAM_SOCKS`.
+3. В `RuntimeSettings` устанавливается `xray_routing_enabled=False`.
 
 ## Caddy
 
