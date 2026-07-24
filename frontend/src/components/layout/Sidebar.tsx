@@ -9,6 +9,7 @@ import {
   ArrowLeftOnRectangleIcon,
   BoltIcon,
   ChevronLeftIcon,
+  ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
 
 const nav = [
@@ -16,6 +17,7 @@ const nav = [
   { to: '/users', label: 'Users', icon: UsersIcon },
   { to: '/profiles', label: 'Profiles', icon: UserCircleIcon },
   { to: '/containers', label: 'Containers', icon: CubeIcon },
+  { to: '/routing', label: 'Routing', icon: ArrowsRightLeftIcon },
   { to: '/settings', label: 'Settings', icon: Cog6ToothIcon },
 ]
 

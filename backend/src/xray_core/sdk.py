@@ -23,7 +23,8 @@ class XrayCore:
             detach=True,
             environment={
                 "CONFIG": xray_json,
-            }
+            },
+            ports={"10808/tcp": 10808, "10808/udp": 10808}
         )
 
     @staticmethod

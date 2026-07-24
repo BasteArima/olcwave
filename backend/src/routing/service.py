@@ -4,9 +4,8 @@ from fastapi import HTTPException
 
 import json
 
-from backend.src.settings.service import SettingsService
-from backend.src.xray_core.sdk import XrayCore
-from olcrtc.service import Containers
+from settings.service import SettingsService
+from xray_core.sdk import XrayCore
 from database import async_session_factory
 from routing.db import RoutingDB
 
@@ -29,6 +28,7 @@ class Routing:
 
     @staticmethod
     async def create(xray_json: str):
+        from olcrtc.service import Containers
         async with async_session_factory() as db:  
             _= await RoutingDB.create(db, xray_json)
 
@@ -54,6 +54,7 @@ class Routing:
 
     @staticmethod
     async def update(xray_json: str):
+        from olcrtc.service import Containers
         async with async_session_factory() as db:  
             _= await RoutingDB.update(db, xray_json) 
 
@@ -73,6 +74,7 @@ class Routing:
 
     @staticmethod
     async def delete():
+        from olcrtc.service import Containers
         async with async_session_factory() as db:  
             _=await RoutingDB.delete(db)
 

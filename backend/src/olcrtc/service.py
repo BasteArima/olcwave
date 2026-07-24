@@ -13,9 +13,10 @@ class Containers:
         return len(parts) == 3 and parts[0] == "olcwave"
 
     @staticmethod
-    def to_schema(cont: Container) -> ContainerSchema:
+    def to_schema(cont: Container) -> ContainerSchema | None:
         if len(cont.name.split("-")) != 3: 
-            raise ValueError(f"{cont.name} invalid name")
+            return
+
         _, config_tag, user_id = cont.name.split("-")  # pyright: ignore[reportOptionalMemberAccess]
 
         return ContainerSchema(
@@ -30,10 +31,10 @@ class Containers:
 
     @staticmethod
     def all() -> list[ContainerSchema]:
-        return [
+        return [  # pyright: ignore[reportReturnType]
             Containers.to_schema(cont)
             for cont in OlcRTC.all(include_stopped=True)
-            if Containers.is_panel_container(cont)
+            if Containers.is_panel_container(cont) and Containers.to_schema(cont) is not None
         ]
 
     @staticmethod

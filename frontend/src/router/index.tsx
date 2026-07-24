@@ -4,6 +4,7 @@ import Dashboard from '../pages/Dashboard'
 import Users from '../pages/Users'
 import Profiles from '../pages/Profiles'
 import Containers from '../pages/Containers'
+import Routing from '../pages/Routing'
 import Settings from '../pages/Settings'
 import ProtectedRoute from '../components/common/ProtectedRoute'
 import AppLayout from '../components/layout/AppLayout'
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       { path: 'users', element: <Users /> },
       { path: 'profiles', element: <Profiles /> },
       { path: 'containers', element: <Containers /> },
+      { path: 'routing', element: <Routing /> },
       { path: 'settings', element: <Settings /> },
     ],
   },

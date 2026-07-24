@@ -5,7 +5,7 @@ from settings.service import SettingsService
 from xray_core.sdk import XrayCore
 from routing.service import Routing
 
-router = APIRouter(prefix="/profiles", tags=["profiles"])
+router = APIRouter(prefix="/routing", tags=["routing"])
 
 @router.get("/enabled")
 async def check_enabled(_admin: dict = Depends(get_current_admin)):

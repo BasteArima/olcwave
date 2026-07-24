@@ -8,8 +8,9 @@ WORKDIR /app
 
 RUN wget -q https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-linux-64.zip
 
-RUN unzip Xray-linux-64.zip && mv Xray-linux-64 xray && rm Xray-linux-64.zip
+RUN unzip Xray-linux-64.zip && rm Xray-linux-64.zip
 
-CP entrypoint.sh .
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["bash", "/app/entrypoint.sh"]

@@ -1,5 +1,6 @@
 import asyncio
 
+from docker.errors import NotFound
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,6 +13,7 @@ from profiles.router import router as configs_router
 from users.router import router as users_router
 from subscriptions.router import router as subscriptions_router
 from olcrtc.router import router as containers_router
+from routing.router import router as routing_router
 from xray_core.sdk import XrayCore
 from config import settings
 from database import create_tables
@@ -35,7 +37,10 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     await SyncManager.stop()
-    XrayCore.stop()
+    try:
+        XrayCore.stop()
+    except NotFound:
+        pass
 
 app = FastAPI(lifespan=lifespan)  # pyright: ignore[reportArgumentType]
 
@@ -53,6 +58,8 @@ app.include_router(users_router)
 app.include_router(subscriptions_router)
 app.include_router(containers_router)
 app.include_router(settings_router)
+app.include_router(routing_router)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0")

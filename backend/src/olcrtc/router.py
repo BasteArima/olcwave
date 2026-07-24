@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth.dependencies import get_current_admin
-from backend.src.settings.service import SettingsService
+from settings.service import SettingsService
 from olcrtc.schemas import ContainerSchema, ContainerConfigSchema, ContainerLogsSchema, ContainerStatsSchema
 from olcrtc.service import Containers
 from users.service import Users
