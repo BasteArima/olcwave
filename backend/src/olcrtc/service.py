@@ -1,5 +1,8 @@
 from docker.models.containers import Container
+from fastapi import HTTPException
 
+from routing.service import Routing
+from settings.service import SettingsService
 from olcrtc.sdk import OlcRTC
 from olcrtc.schemas import ContainerSchema, ContainerConfigSchema, ContainerLogsSchema, ContainerStatsSchema
 
@@ -11,6 +14,8 @@ class Containers:
 
     @staticmethod
     def to_schema(cont: Container) -> ContainerSchema:
+        if len(cont.name.split("-")) != 3: 
+            raise ValueError(f"{cont.name} invalid name")
         _, config_tag, user_id = cont.name.split("-")  # pyright: ignore[reportOptionalMemberAccess]
 
         return ContainerSchema(
@@ -32,7 +37,16 @@ class Containers:
         ]
 
     @staticmethod
-    def run(name: str):
+    def run(config: str, config_tag: str, short_uuid: str):
+        routing_socks_addr = ""
+        socks_port = SettingsService.get().xray_routing_inbound_port
+        if SettingsService.get().xray_routing_enabled and socks_port:
+            routing_socks_addr = f"host.docker.internal:{socks_port}"
+
+        OlcRTC.run(config, config_tag, short_uuid, routing_socks_addr)
+
+    @staticmethod
+    def start(name: str):
         OlcRTC.start(name)
 
     @staticmethod
@@ -106,4 +120,3 @@ class Containers:
             if container.config_tag == config_tag:
                 Containers.remove(container.name)
 
-    

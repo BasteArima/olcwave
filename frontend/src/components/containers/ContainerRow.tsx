@@ -79,7 +79,7 @@ export default function ContainerRow({
             <ChevronRightIcon
               className={`w-3.5 h-3.5 shrink-0 text-text-muted transition-transform ${expanded ? 'rotate-90' : ''}`}
             />
-            <code className="font-mono text-text-secondary">{container.user_id}</code>
+            <code className="font-mono text-text-secondary">{container.short_uuid}</code>
           </div>
         </Td>
         {/* 2. Config Tag */}
@@ -136,7 +136,7 @@ export default function ContainerRow({
               <Detail label="Container ID" value={container.id} mono />
               <Detail label="Image" value={container.image} mono />
               <Detail label="Status" value={container.status} />
-              <Detail label="User ID" value={container.user_id} mono />
+              <Detail label="User ID" value={container.short_uuid} mono />
               <Detail label="Config Tag" value={container.config_tag} mono />
               <Detail label="Created" value={`${created.toLocaleDateString()} ${created.toLocaleTimeString()}`} />
               {isRunning && <Detail label="Running For" value={formatUptime(created)} />}

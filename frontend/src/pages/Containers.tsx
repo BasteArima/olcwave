@@ -20,20 +20,20 @@ import {
   ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 
-type GroupMode = 'user_id' | 'config_tag'
-type SortKey = 'user_id' | 'config_tag' | 'created' | 'status'
+type GroupMode = 'short_uuid' | 'config_tag'
+type SortKey = 'short_uuid' | 'config_tag' | 'created' | 'status'
 type SortDir = 'asc' | 'desc'
 
 const COL_SPAN = 11
 
 const groupOptions: { key: GroupMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: 'user_id', label: 'By User', icon: UsersIcon },
+  { key: 'short_uuid', label: 'By User', icon: UsersIcon },
   { key: 'config_tag', label: 'By Config Tag', icon: TagIcon },
 ]
 
 export default function Containers() {
   const [search, setSearch] = useState('')
-  const [groupMode, setGroupMode] = useState<GroupMode>('user_id')
+  const [groupMode, setGroupMode] = useState<GroupMode>('short_uuid')
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'created', dir: 'desc' })
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [logsTarget, setLogsTarget] = useState<Container | null>(null)
@@ -53,7 +53,7 @@ export default function Containers() {
     return containers.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.user_id.toLowerCase().includes(q) ||
+        c.short_uuid.toLowerCase().includes(q) ||
         c.config_tag.toLowerCase().includes(q) ||
         c.status.toLowerCase().includes(q)
     )
@@ -142,7 +142,7 @@ export default function Containers() {
             <section key={key} className="space-y-3">
               <div className="flex items-center gap-2.5">
                 <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  {groupMode === 'user_id' ? 'User' : 'Config Tag'}
+                  {groupMode === 'short_uuid' ? 'User' : 'Config Tag'}
                 </h3>
                 <code className="text-xs font-mono text-accent bg-accent/10 px-2 py-0.5 rounded">{key}</code>
                 <span className="text-xs text-text-muted tabular-nums">{items.length}</span>
@@ -153,7 +153,7 @@ export default function Containers() {
                   <table className="w-full text-sm border-collapse">
                     <thead className="sticky top-0 z-10">
                       <tr className="bg-bg-tertiary text-left border-b border-border">
-                        <SortableTh label="User ID" sortKey="user_id" sort={sort} onSort={toggleSort} />
+                        <SortableTh label="User ID" sortKey="short_uuid" sort={sort} onSort={toggleSort} />
                         <SortableTh label="Config Tag" sortKey="config_tag" sort={sort} onSort={toggleSort} />
                         <SortableTh label="Created" sortKey="created" sort={sort} onSort={toggleSort} />
                         <Th>Uptime</Th>

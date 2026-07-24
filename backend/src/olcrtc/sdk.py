@@ -49,6 +49,9 @@ class OlcRTC:
                 "UPSTREAM_SOCKS": upstream_proxy_addr,
                 "UPSTREAM_USER": upstream_proxy_user,
                 "UPSTREAM_PASS": upstream_proxy_pass
+            },
+            extra_hosts={
+                "host.docker.internal": "host-gateway",
             }
         )
 
@@ -90,6 +93,9 @@ class OlcRTC:
             name=name,
             detach=True,
             environment=env,
+            extra_hosts={
+                "host.docker.internal": "host-gateway",
+            }
         )
 
     @staticmethod

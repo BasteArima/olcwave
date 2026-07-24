@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth.dependencies import get_current_admin
+from backend.src.settings.service import SettingsService
 from olcrtc.schemas import ContainerSchema, ContainerConfigSchema, ContainerLogsSchema, ContainerStatsSchema
 from olcrtc.service import Containers
 from users.service import Users
@@ -26,7 +27,7 @@ async def run(name: str, _admin: dict = Depends(get_current_admin)):
                 detail="traffic_limit_exceeded",
             )
 
-    Containers.run(name)
+    Containers.start(name)
 
     return "ok"
 
@@ -38,7 +39,11 @@ async def stop(name: str, _admin: dict = Depends(get_current_admin)):
 
 @router.post("/restart")
 async def restart(name: str, _admin: dict = Depends(get_current_admin)):
-    Containers.restart(name)
+    settings = SettingsService.get()
+    if settings.xray_routing_enabled and settings.xray_routing_inbound_port:
+        Containers.restart(name, f"host.docker.internal:{settings.xray_routing_inbound_port}")
+    else:
+        Containers.restart(name)
 
     return "ok"
 

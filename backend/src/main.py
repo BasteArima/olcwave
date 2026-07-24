@@ -12,6 +12,7 @@ from profiles.router import router as configs_router
 from users.router import router as users_router
 from subscriptions.router import router as subscriptions_router
 from olcrtc.router import router as containers_router
+from xray_core.sdk import XrayCore
 from config import settings
 from database import create_tables
 from traffic import TrafficManager
@@ -22,6 +23,9 @@ async def lifespan(app: FastAPI):
     await create_tables() # TODO: add alembic migrations
     await SettingsService.load()
 
+    if SettingsService.get().xray_routing_enabled:
+        XrayCore.start()
+
     SyncManager.start()
     task = asyncio.create_task(TrafficManager.run())
     yield
@@ -31,6 +35,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     await SyncManager.stop()
+    XrayCore.stop()
 
 app = FastAPI(lifespan=lifespan)  # pyright: ignore[reportArgumentType]
 

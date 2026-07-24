@@ -49,7 +49,7 @@ export interface SubscriptionBundle {
 export interface Container {
   id: string
   name: string
-  user_id: string
+  short_uuid: string
   config_tag: string
   status: string
   created: string

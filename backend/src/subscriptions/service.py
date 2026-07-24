@@ -119,7 +119,7 @@ class Subscriptions:
         servers: list[str] = []
         
         for srv in OlcRTC.all():
-            if Containers.is_panel_container(srv): # pyright: ignore[reportOptionalMemberAccess]
+            if Containers.is_panel_container(srv) and srv.name.endswith(short_uuid): # pyright: ignore[reportOptionalMemberAccess]
                 servers.append(srv.name.split("-")[1])  # pyright: ignore[reportOptionalMemberAccess]
 
         return servers
@@ -152,7 +152,7 @@ class Subscriptions:
         for container in OlcRTC.all(include_stopped=True):
             if (
                 container.name.startswith("olcwave-")
-                and short_uuid in container.name  # pyright: ignore[reportOperatorIssue]
+                and container.name.endswith(f"-{short_uuid}")  # pyright: ignore[reportOperatorIssue]
             ):
                 OlcRTC.remove(container.name)  # pyright: ignore[reportArgumentType]
 
@@ -208,7 +208,8 @@ class Subscriptions:
         for tag in profiles.keys() - configs.keys():
             config = Subscriptions.profile_to_config(profiles[tag].profile)
             configs[tag] = config
-            OlcRTC.run(config, tag, short_uuid)
+
+            Containers.run(config, tag, short_uuid)
 
         return configs, profiles
 

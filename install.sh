@@ -125,6 +125,15 @@ build_olcrtc(){
   cd ../..
 }
 
+build_xraycore(){
+  info "Building XrayCore container"
+  cd backend/xraycore
+
+  docker build . --tag xraycore
+
+  cd ../..
+}
+
 enable_swapfile() {
     local SWAPFILE="/swapfile"
     local SIZE_GB=4
@@ -403,6 +412,7 @@ main() {
   write_caddyfile
   build_frontend
   build_olcrtc
+  build_xraycore
   start_stack
   verify_stack
   print_summary
