@@ -324,6 +324,8 @@ git pull
 
 cd frontend && npm ci && npm run build && cd ..
 
+cd backend/olcrtc && docker build . --tag olcrtc && cd ../..
+
 docker compose up -d --build
 ```
 
