@@ -3,7 +3,7 @@ from pydantic import BaseModel
 class ContainerSchema(BaseModel):
     id: str
     name: str
-    user_id: str
+    short_uuid: str
     config_tag: str
     status: str
     created: str

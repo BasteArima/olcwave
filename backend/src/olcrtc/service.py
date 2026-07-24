@@ -16,7 +16,7 @@ class Containers:
         return ContainerSchema(
             id=cont.short_id, 
             name=cont.name,  # pyright: ignore[reportArgumentType]
-            user_id=user_id,
+            short_uuid=user_id,
             config_tag=config_tag,
             status=cont.status,
             created=cont.attrs.get("Created", ""),  # pyright: ignore[reportAny]
@@ -40,8 +40,13 @@ class Containers:
         OlcRTC.stop(name)
 
     @staticmethod
-    def restart(name: str):
-        OlcRTC.restart(name)
+    def restart(
+        name: str,
+        upstream_proxy_addr: str = "",
+        upstream_proxy_user: str = "",
+        upstream_proxy_pass: str = "",
+    ):
+        OlcRTC.restart(name, upstream_proxy_addr, upstream_proxy_user, upstream_proxy_pass)
 
     @staticmethod
     def remove(name: str):
@@ -67,3 +72,38 @@ class Containers:
             upload_rate_bps=int(data.get("upload_rate_bps", 0)),
             download_rate_bps=int(data.get("download_rate_bps", 0)),
         )
+
+
+    @staticmethod
+    def stop_all_by_short_uuid(short_uuid: str):
+        containers = Containers.all()
+        
+        for container in containers:
+            if container.short_uuid == short_uuid:
+                Containers.stop(container.name)
+
+    @staticmethod
+    def stop_all_by_config_tag(config_tag: str):
+        containers = Containers.all()
+
+        for container in containers:
+            if container.config_tag == config_tag:
+                Containers.stop(container.name)
+
+    @staticmethod
+    def remove_all_by_short_uuid(short_uuid: str):
+        containers = Containers.all()
+        
+        for container in containers:
+            if container.short_uuid == short_uuid:
+                Containers.remove(container.name)
+
+    @staticmethod
+    def remove_all_by_config_tag(config_tag: str):
+        containers = Containers.all()
+
+        for container in containers:
+            if container.config_tag == config_tag:
+                Containers.remove(container.name)
+
+    

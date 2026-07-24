@@ -1,10 +1,10 @@
 from fastapi import Response
 from remnawave.models import SubscriptionInfoResponseDto
 
-from settings.schemas import RuntimeSettings
 from settings.service import SettingsService
 from users.schemas import TrafficInfoSchema, UserSchema
 from olcrtc.sdk import OlcRTC
+from profiles.service import Containers
 from profiles.service import Profiles
 from rw.sdk import isUserValid
 from users.service import Users
@@ -119,7 +119,7 @@ class Subscriptions:
         servers: list[str] = []
         
         for srv in OlcRTC.all():
-            if srv.name.endswith(short_uuid) and len(srv.name.split("-")) == 3 and srv.name.split("-")[0] == "olcwave": # pyright: ignore[reportOptionalMemberAccess]
+            if Containers.is_panel_container(srv): # pyright: ignore[reportOptionalMemberAccess]
                 servers.append(srv.name.split("-")[1])  # pyright: ignore[reportOptionalMemberAccess]
 
         return servers
@@ -149,12 +149,11 @@ class Subscriptions:
         if rw_user:
             return rw_user
 
-        for container in OlcRTC.all():
+        for container in OlcRTC.all(include_stopped=True):
             if (
                 container.name.startswith("olcwave-")
                 and short_uuid in container.name  # pyright: ignore[reportOperatorIssue]
             ):
-                OlcRTC.stop(container.name)  # pyright: ignore[reportArgumentType]
                 OlcRTC.remove(container.name)  # pyright: ignore[reportArgumentType]
 
         return Response(status_code=404)

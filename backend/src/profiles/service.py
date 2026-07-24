@@ -2,7 +2,7 @@ import yaml
 
 from fastapi import HTTPException
 
-from olcrtc.sdk import OlcRTC
+from olcrtc.service import Containers
 from database import async_session_factory
 from profiles.db import ProfilesDB
 from profiles.schemas import ProfileSchema
@@ -49,21 +49,14 @@ class Profiles:
         async with async_session_factory() as db:  
             _= await ProfilesDB.update(db, tag, name, profile) 
 
-        for cont in OlcRTC.all():
-            if tag in cont.name:  # pyright: ignore[reportOperatorIssue]
-                OlcRTC.stop(cont.name)  # pyright: ignore[reportArgumentType]
+        Containers.stop_all_by_config_tag(tag)
 
     @staticmethod
     async def delete(tag: str):
         async with async_session_factory() as db:  
             _=await ProfilesDB.delete(db, tag) 
 
-        for cont in OlcRTC.all():
-            if tag in cont.name:  # pyright: ignore[reportOperatorIssue]
-                OlcRTC.stop(cont.name) # pyright: ignore[reportArgumentType]
-                OlcRTC.remove(cont.name)  # pyright: ignore[reportArgumentType]
-
-
+        Containers.remove_all_by_config_tag(tag)
 
     @staticmethod
     async def get_all() -> list[ProfileSchema]:

@@ -24,7 +24,14 @@ class OlcRTC:
         )
 
     @staticmethod
-    def run(config: str, config_tag: str, user_id: str, rebuild: bool = False):
+    def run(
+        config: str,
+        config_tag: str,
+        user_id: str,
+        upstream_proxy_addr: str = "",
+        upstream_proxy_user: str = "",
+        upstream_proxy_pass: str = ""
+    ):
         name = f"olcwave-{config_tag}-{user_id}"
 
         try:
@@ -39,6 +46,9 @@ class OlcRTC:
             detach=True,
             environment={
                 "CONFIG": config,
+                "UPSTREAM_SOCKS": upstream_proxy_addr,
+                "UPSTREAM_USER": upstream_proxy_user,
+                "UPSTREAM_PASS": upstream_proxy_pass
             }
         )
 
@@ -51,8 +61,36 @@ class OlcRTC:
         client.containers.get(name).stop()
 
     @staticmethod
-    def restart(name: str):
-        client.containers.get(name).restart()  # pyright: ignore[reportUnknownMemberType]
+    def restart(
+        name: str,
+        upstream_proxy_addr: str = "",
+        upstream_proxy_user: str = "",
+        upstream_proxy_pass: str = "",
+    ):
+        container = client.containers.get(name)
+
+        config = container.attrs["Config"]
+
+        image = config["Image"]
+        env = {}
+
+        for item in config.get("Env", []):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                env[k] = v
+
+        env["UPSTREAM_SOCKS"] = upstream_proxy_addr
+        env["UPSTREAM_USER"] = upstream_proxy_user
+        env["UPSTREAM_PASS"] = upstream_proxy_pass
+
+        container.remove(force=True)
+
+        client.containers.run(
+            image=image,
+            name=name,
+            detach=True,
+            environment=env,
+        )
 
     @staticmethod
     def remove(name: str):
