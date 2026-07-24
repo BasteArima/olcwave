@@ -14,7 +14,7 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
-const SYNC_OPTIONS = [
+const RW_SYNC_OPTIONS = [
   { value: '30s', label: 'Every 30 seconds' },
   { value: '5m', label: 'Every 5 minutes' },
   { value: '1h', label: 'Every hour' },
@@ -104,7 +104,7 @@ export default function Settings() {
     },
   })
 
-  const isCustom = !SYNC_OPTIONS.some((o) => o.value === syncInterval)
+  const isCustom = !RW_SYNC_OPTIONS.some((o) => o.value === syncInterval)
   const effectiveSync = isCustom ? customSync : syncInterval
   const syncError = isCustom && customSync && !isValidInterval(customSync) ? 'Invalid format. Use number + s/m/h (e.g. 10m, 4h).' : ''
   const subIntervalError = subUpdateInterval ? getDurationError(subUpdateInterval) : ''
@@ -184,7 +184,7 @@ export default function Settings() {
         <div className="px-5 py-4 space-y-4">
           <Select
             label="Auto sync users"
-            options={SYNC_OPTIONS}
+            options={RW_SYNC_OPTIONS}
             value={isCustom ? '__other__' : syncInterval}
             onChange={(e) => handleSyncSelect(e.target.value)}
             disabled={isLoading}
