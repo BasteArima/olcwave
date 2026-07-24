@@ -15,15 +15,14 @@ import {
 } from '@heroicons/react/24/outline'
 
 const RW_SYNC_OPTIONS = [
-  { value: '30s', label: 'Every 30 seconds' },
+  { value: '1m', label: 'Every minute' },
   { value: '5m', label: 'Every 5 minutes' },
   { value: '1h', label: 'Every hour' },
-  { value: '2h', label: 'Every 2 hours' },
-  { value: '4h', label: 'Every 4 hours' },
+  { value: '2h', label: 'Every 4 hours' },
   { value: '6h', label: 'Every 6 hours' },
-  { value: '8h', label: 'Every 8 hours' },
   { value: '12h', label: 'Every 12 hours' },
   { value: '24h', label: 'Once a day' },
+  { value: '__other__', label: 'Other...' },
 ]
 
 function isValidInterval(val: string): boolean {
@@ -74,7 +73,7 @@ export default function Settings() {
   const [defaultTrafficGb, setDefaultTrafficGb] = useState('')
   const [subUpdateInterval, setSubUpdateInterval] = useState('')
   const [collectInterval, setCollectInterval] = useState('')
-  const [syncInterval, setSyncInterval] = useState('1h')
+  const [syncMode, setSyncMode] = useState('1h')
   const [customSync, setCustomSync] = useState('')
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null)
 
@@ -85,8 +84,13 @@ export default function Settings() {
     setDefaultTrafficGb(bytesToGB(settings.default_traffic_limit).toFixed(2))
     setSubUpdateInterval(settings.sub_update_interval)
     setCollectInterval(String(settings.traffic_collect_interval))
-    setSyncInterval(settings.sync_interval)
-    setCustomSync('')
+    if (RW_SYNC_OPTIONS.some(o => o.value === settings.sync_interval)) {
+      setSyncMode(settings.sync_interval)
+      setCustomSync('')
+    } else {
+      setSyncMode('__other__')
+      setCustomSync(settings.sync_interval)
+    }
     setLastSyncAt(settings.last_sync_at)
   }, [settings])
 
@@ -104,8 +108,10 @@ export default function Settings() {
     },
   })
 
-  const isCustom = !RW_SYNC_OPTIONS.some((o) => o.value === syncInterval)
-  const effectiveSync = isCustom ? customSync : syncInterval
+  const isCustom = syncMode === '__other__'
+  const effectiveSync = isCustom
+    ? customSync
+    : syncMode
   const syncError = isCustom && customSync && !isValidInterval(customSync) ? 'Invalid format. Use number + s/m/h (e.g. 10m, 4h).' : ''
   const subIntervalError = subUpdateInterval ? getDurationError(subUpdateInterval) : ''
 
@@ -121,7 +127,8 @@ export default function Settings() {
   }
 
   const handleSyncSelect = (value: string) => {
-    setSyncInterval(value)
+    setSyncMode(value)
+
     if (value !== '__other__') {
       setCustomSync('')
     }
@@ -185,7 +192,7 @@ export default function Settings() {
           <Select
             label="Auto sync users"
             options={RW_SYNC_OPTIONS}
-            value={isCustom ? '__other__' : syncInterval}
+            value={syncMode}
             onChange={(e) => handleSyncSelect(e.target.value)}
             disabled={isLoading}
           />
