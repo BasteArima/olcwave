@@ -46,6 +46,7 @@ export default function Settings() {
 
   const [subName, setSubName] = useState('')
   const [defaultTrafficGb, setDefaultTrafficGb] = useState('')
+  const [subUpdateInterval, setSubUpdateInterval] = useState('')
   const [collectInterval, setCollectInterval] = useState('')
   const [syncInterval, setSyncInterval] = useState('1h')
   const [customSync, setCustomSync] = useState('')
@@ -56,6 +57,7 @@ export default function Settings() {
 
     setSubName(settings.sub_name)
     setDefaultTrafficGb(bytesToGB(settings.default_traffic_limit).toFixed(2))
+    setSubUpdateInterval(String(settings.sub_update_interval))
     setCollectInterval(String(settings.traffic_collect_interval))
     setSyncInterval(settings.sync_interval)
     setCustomSync('')
@@ -84,6 +86,7 @@ export default function Settings() {
     saveMutation.mutate({
       sub_name: subName,
       default_traffic_limit: gbToBytes(parseFloat(defaultTrafficGb) || 0),
+      sub_update_interval: parseInt(subUpdateInterval, 10) || 1,
       traffic_collect_interval: parseInt(collectInterval, 10) || 10,
       sync_interval: effectiveSync || '1h',
       last_sync_at: lastSyncAt,
@@ -119,6 +122,17 @@ export default function Settings() {
             onChange={(e) => setDefaultTrafficGb(e.target.value)}
             placeholder="e.g. 100"
             hint="Default traffic limit for new users"
+            disabled={isLoading}
+          />
+          <Input
+            label="Subscription update interval (hours)"
+            type="number"
+            min="1"
+            step="1"
+            value={subUpdateInterval}
+            onChange={(e) => setSubUpdateInterval(e.target.value)}
+            placeholder="e.g. 1"
+            hint="How often client updates subscription"
             disabled={isLoading}
           />
           <Input

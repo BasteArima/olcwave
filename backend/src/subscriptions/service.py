@@ -129,7 +129,7 @@ class Subscriptions:
         txt = (
             f"#name: {name}\n" \
             f"#update: 2147483647\n" \
-            f"#refresh: {SettingsService.get().sub_autoupdate_interval}h\n" \
+            f"#refresh: {SettingsService.get().sub_update_interval}h\n" \
             f"#used: {bytes_to_notation(used)}/{bytes_to_notation(limit)}\n" \
             f"#available: {bytes_to_notation(limit - used)}\n\n" \
         )
@@ -242,5 +242,5 @@ class Subscriptions:
                 traffic.limit,
             ),
             media_type="text/plain",
-            headers={"profile-update-interval": str(SettingsService.get().sub_autoupdate_interval)}
+            headers={"profile-update-interval": str(SettingsService.get().sub_update_interval)}
         )
