@@ -104,6 +104,10 @@ require_root() {
 }
 
 install_base_packages() {
+    if ! command -v apt-get >/dev/null; then
+      die "This installer supports Debian/Ubuntu only."
+    fi
+    
     info "Installing base packages..."
 
     apt-get update
@@ -375,7 +379,7 @@ verify_stack() {
 print_summary() {
   local line="========================================"
   printf '\n%s%s%s\n\n' "$C_GREEN" "$line" "$C_RESET"
-  printf '  %s%s installed successfully%s\n\n' "$C_BOLD" "$SUB_NAME" "$C_RESET"
+  printf '  %sOLCWave%s installed successfully%s\n\n' "$C_BOLD" "$C_GREEN" "$C_RESET"
   printf '  Panel\n    %s\n\n'                 "$PANEL_URL"
   printf '  Admin username\n    %s\n\n'        "$ADMIN_USERNAME"
   printf '  Admin password\n    %s\n\n'        "$ADMIN_PASSWORD"
@@ -390,8 +394,8 @@ print_summary() {
 # ---------------------------------------------------------------------------
 main() {
   require_root
-  enable_swapfile
   install_base_packages
+  enable_swapfile
   check_dependencies
   collect_input
   write_backend_env
