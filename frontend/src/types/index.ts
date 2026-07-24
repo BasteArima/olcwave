@@ -88,6 +88,27 @@ export interface ApiError {
   detail: string
 }
 
+export interface ValidationError {
+  path: string
+  message: string
+}
+
+export interface ValidationWarning {
+  path: string
+  message: string
+}
+
+export interface YamlValidationResult {
+  valid: boolean
+  errors: ValidationError[]
+  warnings: ValidationWarning[]
+}
+
+export interface TagValidationResult {
+  valid: boolean
+  message?: string
+}
+
 export interface AuthState {
   token: string | null
   isAuthenticated: boolean

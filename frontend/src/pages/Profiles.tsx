@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { profilesApi } from '../api/profiles'
-import type { Profile } from '../types'
+import type { Profile, YamlValidationResult } from '../types'
+import { validateYaml } from '../utils/yamlValidator'
+import { checkTagUniqueness } from '../utils/tagValidator'
+import { useDebounce } from '../utils/useDebounce'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Modal from '../components/ui/Modal'
@@ -19,6 +22,8 @@ import {
   DocumentTextIcon,
   RectangleStackIcon,
   ExclamationTriangleIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline'
 
 export default function Profiles() {
@@ -181,6 +186,20 @@ function Th({ children, className = '' }: { children: React.ReactNode; className
   )
 }
 
+function handleTextareaTab(
+  e: React.KeyboardEvent<HTMLTextAreaElement>,
+  value: string,
+  onChange: (v: string) => void,
+) {
+  if (e.key !== 'Tab' || e.shiftKey) return
+  e.preventDefault()
+  const ta = e.currentTarget
+  const start = ta.selectionStart
+  const end = ta.selectionEnd
+  onChange(value.slice(0, start) + '  ' + value.slice(end))
+  requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 2 })
+}
+
 const EXAMPLES_CACHE_KEY = 'profile-examples-cache'
 const EXAMPLES_CACHE_TTL = 10 * 60 * 1000
 
@@ -236,24 +255,19 @@ function ProfileHelpModal({ open, onClose }: { open: boolean; onClose: () => voi
           <p className="font-semibold text-text-primary mb-1">Важные параметры</p>
           <ul className="space-y-1 text-text-secondary">
             <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">tag</code> - уникальный идентификатор; <span className="text-warning">не используйте</span> символ <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">-</code>, иначе система трафика не сможет определить владельца контейнера.</li>
-            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">crypto.key</code> - оставьте пустым (<code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">key: ""</code>); панель сама генерирует уникальный ключ для каждого пользователя.</li>
             <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">room.id</code> - для Jitsi укажите только базовый URL сервера; панель добавит случайное имя комнаты автоматически.</li>
             <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">net.transport</code> - один из: <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">datachannel</code>, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">vp8channel</code>, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">seichannel</code>, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">videochannel</code>.</li>
           </ul>
         </section>
         <section className="bg-bg-tertiary rounded-lg px-3 py-2.5">
           <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Минимальный пример</p>
-          <pre className="text-xs font-mono text-text-secondary leading-relaxed whitespace-pre">{`mode: srv
-auth:
+          <pre className="text-xs font-mono text-text-secondary leading-relaxed whitespace-pre">{`auth:
   provider: jitsi
 room:
   id: "https://jitsi.example.org"
-crypto:
-  key: ""
 net:
   transport: datachannel
-  dns: "8.8.8.8:53"
-data: data`}</pre>
+  dns: "8.8.8.8:53"`}</pre>
         </section>
         <p className="text-xs text-text-muted">Редактирование профиля останавливает все контейнеры с этим тегом - они пересоздадутся при следующем обновлении подписки.</p>
       </div>
@@ -268,7 +282,27 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
   const [error, setError] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
+  const [yamlResult, setYamlResult] = useState<YamlValidationResult | null>(null)
+  const [tagResult, setTagResult] = useState<{ valid: boolean; message?: string } | null>(null)
   const queryClient = useQueryClient()
+
+  const debouncedTag = useDebounce(tag, 400)
+
+  useEffect(() => {
+    if (config.trim()) {
+      setYamlResult(validateYaml(config))
+    } else {
+      setYamlResult(null)
+    }
+  }, [config])
+
+  useEffect(() => {
+    if (!debouncedTag.trim()) {
+      setTagResult(null)
+      return
+    }
+    checkTagUniqueness(debouncedTag).then(setTagResult)
+  }, [debouncedTag])
 
   const mutation = useMutation({
     mutationFn: () => profilesApi.create({ name, tag, profile: config }),
@@ -282,7 +316,14 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
     },
   })
 
-  const reset = () => { setName(''); setTag(''); setConfig(''); setError('') }
+  const reset = () => {
+    setName('')
+    setTag('')
+    setConfig('')
+    setError('')
+    setYamlResult(null)
+    setTagResult(null)
+  }
 
   return (
     <>
@@ -306,13 +347,28 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
           {error && <FormError message={error} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Display name" />
-            <Input label="Tag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique_tag" />
+            <Input label="Tag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique_tag" error={tagResult?.valid === false ? tagResult.message : undefined} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-text-secondary">YAML Config</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-text-secondary">YAML Config</label>
+              {yamlResult && (
+                <span className={`text-xs font-medium flex items-center gap-1 ${
+                  yamlResult.valid ? 'text-success' : 'text-warning'
+                }`}>
+                  {yamlResult.valid ? (
+                    <CheckCircleIcon className="w-3.5 h-3.5" />
+                  ) : (
+                    <XCircleIcon className="w-3.5 h-3.5" />
+                  )}
+                  {yamlResult.valid ? 'Valid config' : `${yamlResult.errors.length} issue${yamlResult.errors.length !== 1 ? 's' : ''}`}
+                </span>
+              )}
+            </div>
             <textarea
               value={config}
               onChange={(e) => setConfig(e.target.value)}
+              onKeyDown={(e) => handleTextareaTab(e, config, setConfig)}
               placeholder="Paste YAML configuration here..."
               rows={16}
               className="bg-bg-tertiary border border-border rounded-md px-3 py-2.5 text-sm text-text-primary leading-relaxed
@@ -321,6 +377,34 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
               spellCheck={false}
             />
           </div>
+
+          {yamlResult && !yamlResult.valid && yamlResult.errors.length > 0 && (
+            <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-danger">Config validation errors:</p>
+              <ul className="space-y-1">
+                {yamlResult.errors.map((err, i) => (
+                  <li key={i} className="text-xs text-danger flex gap-2">
+                    <span className="shrink-0">-</span>
+                    <span>{err.path ? <><strong>{err.path}:</strong> {err.message}</> : err.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {yamlResult && yamlResult.warnings.length > 0 && (
+            <div className="bg-warning/5 border border-warning/15 rounded-lg px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-warning">Warnings:</p>
+              <ul className="space-y-1">
+                {yamlResult.warnings.map((warn, i) => (
+                  <li key={i} className="text-xs text-warning flex gap-2">
+                    <span className="shrink-0">-</span>
+                    <span><strong>{warn.path}:</strong> {warn.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex justify-between gap-2 pt-1">
             <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
               <RectangleStackIcon className="w-4 h-4" />
@@ -353,15 +437,25 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
   const [config, setConfig] = useState('')
   const [error, setError] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
+  const [yamlResult, setYamlResult] = useState<YamlValidationResult | null>(null)
   const queryClient = useQueryClient()
 
   useEffect(() => {
     if (profile) {
       setName(profile.name)
       setConfig(profile.profile)
+      setYamlResult(null)
       setError('')
     }
   }, [profile])
+
+  useEffect(() => {
+    if (config.trim()) {
+      setYamlResult(validateYaml(config))
+    } else {
+      setYamlResult(null)
+    }
+  }, [config])
 
   const mutation = useMutation({
     mutationFn: () => profilesApi.update(profile!.tag, name, config),
@@ -409,11 +503,25 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-text-secondary">YAML Config</label>
-              <span className="text-xs text-text-muted tabular-nums">{config.length} chars</span>
+              {yamlResult ? (
+                <span className={`text-xs font-medium flex items-center gap-1 ${
+                  yamlResult.valid ? 'text-success' : 'text-warning'
+                }`}>
+                  {yamlResult.valid ? (
+                    <CheckCircleIcon className="w-3.5 h-3.5" />
+                  ) : (
+                    <XCircleIcon className="w-3.5 h-3.5" />
+                  )}
+                  {yamlResult.valid ? 'Valid config' : `${yamlResult.errors.length} issue${yamlResult.errors.length !== 1 ? 's' : ''}`}
+                </span>
+              ) : (
+                <span className="text-xs text-text-muted tabular-nums">{config.length} chars</span>
+              )}
             </div>
             <textarea
               value={config}
               onChange={(e) => setConfig(e.target.value)}
+              onKeyDown={(e) => handleTextareaTab(e, config, setConfig)}
               rows={18}
               className="bg-bg-tertiary border border-border rounded-md px-3 py-2.5 text-sm text-text-primary leading-relaxed
                 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30
@@ -421,6 +529,34 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
               spellCheck={false}
             />
           </div>
+
+          {yamlResult && !yamlResult.valid && yamlResult.errors.length > 0 && (
+            <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-danger">Config validation errors:</p>
+              <ul className="space-y-1">
+                {yamlResult.errors.map((err, i) => (
+                  <li key={i} className="text-xs text-danger flex gap-2">
+                    <span className="shrink-0">-</span>
+                    <span>{err.path ? <><strong>{err.path}:</strong> {err.message}</> : err.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {yamlResult && yamlResult.warnings.length > 0 && (
+            <div className="bg-warning/5 border border-warning/15 rounded-lg px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-warning">Warnings:</p>
+              <ul className="space-y-1">
+                {yamlResult.warnings.map((warn, i) => (
+                  <li key={i} className="text-xs text-warning flex gap-2">
+                    <span className="shrink-0">-</span>
+                    <span><strong>{warn.path}:</strong> {warn.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="secondary" onClick={onClose}>Cancel</Button>
             <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>Save Changes</Button>
