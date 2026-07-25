@@ -111,6 +111,7 @@ export interface TagValidationResult {
 
 export interface AuthState {
   token: string | null
+  username: string
   isAuthenticated: boolean
   login: (payload: LoginPayload) => Promise<void>
   logout: () => void

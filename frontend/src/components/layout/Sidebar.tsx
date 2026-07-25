@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth'
+import { useLanguage, type TranslationKey } from '../../i18n/useLanguage'
 import {
   HomeIcon,
   UsersIcon,
@@ -12,13 +13,13 @@ import {
   ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
 
-const nav = [
-  { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
-  { to: '/users', label: 'Users', icon: UsersIcon },
-  { to: '/profiles', label: 'Profiles', icon: UserCircleIcon },
-  { to: '/containers', label: 'Containers', icon: CubeIcon },
-  { to: '/routing', label: 'Routing', icon: ArrowsRightLeftIcon },
-  { to: '/settings', label: 'Settings', icon: Cog6ToothIcon },
+const nav: { to: string; labelKey: TranslationKey; icon: React.ComponentType<{ className?: string }> }[] = [
+  { to: '/dashboard', labelKey: 'navDashboard', icon: HomeIcon },
+  { to: '/users', labelKey: 'navUsers', icon: UsersIcon },
+  { to: '/profiles', labelKey: 'navProfiles', icon: UserCircleIcon },
+  { to: '/containers', labelKey: 'navContainers', icon: CubeIcon },
+  { to: '/routing', labelKey: 'navRouting', icon: ArrowsRightLeftIcon },
+  { to: '/settings', labelKey: 'navSettings', icon: Cog6ToothIcon },
 ]
 
 interface SidebarProps {
@@ -27,7 +28,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const logout = useAuthStore((s) => s.logout)
+  const { t } = useLanguage()
+  const { logout, username } = useAuthStore()
   const location = useLocation()
 
   return (
@@ -40,15 +42,15 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-text-primary leading-tight truncate">OLC Wave</p>
-            <p className="text-[10px] text-text-muted uppercase tracking-wider">Admin Panel</p>
+            <p className="text-sm font-semibold text-text-primary leading-tight truncate">{t('appName')}</p>
+            <p className="text-[10px] text-text-muted uppercase tracking-wider">{t('adminPanel')}</p>
           </div>
         )}
         <button
           onClick={onToggle}
           className={`ml-auto p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover
             transition-colors cursor-pointer ${collapsed ? 'hidden' : ''}`}
-          title="Collapse sidebar"
+          title={t('collapseSidebar')}
         >
           <ChevronLeftIcon className="w-4 h-4" />
         </button>
@@ -57,7 +59,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 py-3 overflow-y-auto">
         {!collapsed && (
-          <p className="px-4 mb-1.5 text-[10px] font-semibold text-text-muted uppercase tracking-wider">Menu</p>
+          <p className="px-4 mb-1.5 text-[10px] font-semibold text-text-muted uppercase tracking-wider">{t('navMenu')}</p>
         )}
         <div className="px-2.5 space-y-0.5">
           {nav.map((item) => {
@@ -71,13 +73,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     ? 'bg-accent/10 text-accent'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}
                   ${collapsed ? 'justify-center' : ''}`}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? t(item.labelKey) : undefined}
               >
                 {active && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-accent" />
                 )}
                 <item.icon className="w-4.5 h-4.5 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{t(item.labelKey)}</span>}
               </NavLink>
             )
           })}
@@ -91,7 +93,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             onClick={onToggle}
             className="flex items-center justify-center w-full py-2 rounded-lg text-text-muted
               hover:text-text-primary hover:bg-bg-hover transition-colors cursor-pointer"
-            title="Expand sidebar"
+            title={t('expandSidebar')}
           >
             <ChevronLeftIcon className="w-4 h-4 rotate-180" />
           </button>
@@ -103,11 +105,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {!collapsed && (
           <div className="flex items-center gap-2.5 px-2 py-2 mb-1">
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent/15 text-accent text-xs font-semibold shrink-0">
-              A
+              {username.charAt(0).toUpperCase() || 'A'}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-text-primary leading-tight truncate">admin</p>
-              <p className="text-[10px] text-text-muted truncate">Administrator</p>
+              <p className="text-sm font-medium text-text-primary leading-tight truncate">{username || 'admin'}</p>
+              <p className="text-[10px] text-text-muted truncate">{t('administrator')}</p>
             </div>
           </div>
         )}
@@ -116,10 +118,10 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           className={`flex items-center gap-3 w-full px-2.5 py-2 rounded-lg text-sm font-medium
             text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer
             ${collapsed ? 'justify-center' : ''}`}
-          title={collapsed ? 'Logout' : undefined}
+          title={collapsed ? t('logout') : undefined}
         >
           <ArrowLeftOnRectangleIcon className="w-4.5 h-4.5 shrink-0" />
-          {!collapsed && <span>Logout</span>}
+          {!collapsed && <span>{t('logout')}</span>}
         </button>
       </div>
     </aside>

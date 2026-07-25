@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import Button from './Button'
+import { useLanguage } from '../../i18n/useLanguage'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -13,8 +14,9 @@ interface ConfirmDialogProps {
 }
 
 export default function ConfirmDialog({
-  open, onClose, onConfirm, title, message, confirmLabel = 'Delete', loading,
+  open, onClose, onConfirm, title, message, confirmLabel, loading,
 }: ConfirmDialogProps) {
+  const { t } = useLanguage()
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !loading && onClose()
@@ -41,7 +43,7 @@ export default function ConfirmDialog({
         </div>
         <div className="flex justify-end gap-2 px-5 py-3.5 border-t border-border bg-bg-primary/40 rounded-b-xl">
           <Button variant="secondary" onClick={onClose} disabled={loading}>
-            Cancel
+            {t('cancel')}
           </Button>
           <button
             onClick={onConfirm}
@@ -57,7 +59,7 @@ export default function ConfirmDialog({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             )}
-            {confirmLabel}
+            {confirmLabel ?? t('deleteDefault')}
           </button>
         </div>
       </div>

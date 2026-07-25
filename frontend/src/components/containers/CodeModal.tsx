@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import { LoadingState, ErrorState } from '../ui/Misc'
+import { useLanguage } from '../../i18n/useLanguage'
 import {
   ClipboardDocumentIcon,
   CheckIcon,
@@ -31,6 +32,7 @@ export default function CodeModal({
   onRefresh,
   refreshing,
 }: CodeModalProps) {
+  const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
 
   const preRef = useRef<HTMLPreElement>(null)
@@ -65,10 +67,10 @@ export default function CodeModal({
               size="sm"
               loading={refreshing}
               onClick={onRefresh}
-              title="Refresh"
+              title={t('refreshLabel')}
             >
               {!refreshing && <ArrowPathIcon className="w-3.5 h-3.5" />}
-              Refresh
+              {t('refreshLabel')}
             </Button>
           )}
           <Button
@@ -76,20 +78,20 @@ export default function CodeModal({
             size="sm"
             onClick={copy}
             disabled={!content}
-            title="Copy to clipboard"
+            title={t('copyToClipboard')}
           >
             {copied ? (
               <CheckIcon className="w-3.5 h-3.5 text-success" />
             ) : (
               <ClipboardDocumentIcon className="w-3.5 h-3.5" />
             )}
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? t('copied') : t('copy')}
           </Button>
         </div>
 
         {loading ? (
           <div className="bg-bg-primary border border-border rounded-lg">
-            <LoadingState text="Loading..." />
+            <LoadingState />
           </div>
         ) : error ? (
           <div className="bg-bg-primary border border-border rounded-lg">
@@ -101,7 +103,7 @@ export default function CodeModal({
             className="bg-bg-primary border border-border rounded-lg p-4 text-xs font-mono leading-relaxed
               text-text-secondary overflow-auto max-h-[60vh] whitespace-pre-wrap break-words"
           >
-            {content || 'No content'}
+            {content || t('noContent')}
           </pre>
         )}
       </div>

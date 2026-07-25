@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { InboxIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { useLanguage } from '../../i18n/useLanguage'
 
 interface CardProps {
   children: ReactNode
@@ -90,7 +91,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
 }
 
 export function EmptyState({
-  message = 'No data available',
+  message,
   hint,
   icon,
   action,
@@ -100,41 +101,44 @@ export function EmptyState({
   icon?: ReactNode
   action?: ReactNode
 }) {
+  const { t } = useLanguage()
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div className="flex items-center justify-center w-12 h-12 rounded-full bg-bg-tertiary text-text-muted mb-4">
         {icon || <InboxIcon className="w-6 h-6" />}
       </div>
-      <p className="text-sm font-medium text-text-secondary">{message}</p>
+      <p className="text-sm font-medium text-text-secondary">{message ?? t('noDataAvailable')}</p>
       {hint && <p className="text-xs text-text-muted mt-1.5 max-w-xs">{hint}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   )
 }
 
-export function LoadingState({ text = 'Loading...' }: { text?: string }) {
+export function LoadingState({ text }: { text?: string }) {
+  const { t } = useLanguage()
   return (
     <div className="flex flex-col items-center justify-center py-16">
       <div className="w-7 h-7 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
-      <p className="text-sm text-text-muted">{text}</p>
+      <p className="text-sm text-text-muted">{text ?? t('loading')}</p>
     </div>
   )
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useLanguage()
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       <div className="flex items-center justify-center w-12 h-12 rounded-full bg-danger/10 text-danger mb-4">
         <ExclamationTriangleIcon className="w-6 h-6" />
       </div>
-      <p className="text-sm font-medium text-text-primary">Something went wrong</p>
+      <p className="text-sm font-medium text-text-primary">{t('somethingWentWrong')}</p>
       <p className="text-xs text-text-muted mt-1.5 max-w-sm">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
           className="mt-4 text-xs font-medium text-accent hover:text-accent-hover cursor-pointer transition-colors"
         >
-          Try again
+          {t('tryAgain')}
         </button>
       )}
     </div>

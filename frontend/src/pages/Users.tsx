@@ -13,6 +13,7 @@ import { Card, ErrorState, EmptyState, Skeleton } from '../components/ui/Misc'
 import { ToastContainer } from '../components/containers/Toast'
 import { useToasts } from '../components/containers/useToasts'
 import { useAutoRefresh } from '../utils/useAutoRefresh'
+import { useLanguage } from '../i18n/useLanguage'
 import { formatBytes, trafficPercent, bytesToGB, gbToBytes, buildSubUrl } from '../utils/format'
 import {
   MagnifyingGlassIcon,
@@ -22,14 +23,13 @@ import {
   ClipboardDocumentIcon,
   CheckIcon,
   LinkIcon,
-  PlusIcon,
 } from '@heroicons/react/24/outline'
 
 export default function Users() {
+  const { t } = useLanguage()
   const [search, setSearch] = useState('')
   const [editUser, setEditUser] = useState<User | null>(null)
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
   const [refreshMs, setRefreshMs] = useAutoRefresh('users')
   const { toasts, dismiss, success, error: toastError } = useToasts()
   const queryClient = useQueryClient()
@@ -52,10 +52,10 @@ export default function Users() {
     mutationFn: () => usersApi.syncWithRemnawave().then((r) => r.data),
     onSuccess: (data: SyncResult) => {
       queryClient.invalidateQueries({ queryKey: ['users-all'] })
-      success(`Created ${data.created}, updated ${data.updated}, deleted ${data.deleted}`)
+      success(t('syncResult', { created: data.created, updated: data.updated, deleted: data.deleted }))
     },
     onError: (err) => {
-      toastError((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to sync with Remnawave')
+      toastError((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToSync'))
     },
   })
 
@@ -73,7 +73,7 @@ export default function Users() {
 
   const copySubUrl = (user: User) => {
     navigator.clipboard.writeText(buildSubUrl(user.short_uuid))
-    success('Copied')
+    success(t('copied'))
   }
 
   return (
@@ -84,31 +84,27 @@ export default function Users() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter users..."
+            placeholder={t('filterUsers')}
             className="w-full h-9 bg-bg-tertiary border border-border rounded-md pl-9 pr-3 text-sm text-text-primary
               placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
-        <span className="text-xs text-text-muted tabular-nums">{filtered.length} users</span>
+        <span className="text-xs text-text-muted tabular-nums">{t('nUsers', { n: filtered.length })}</span>
         <AutoRefreshSelect value={refreshMs} onChange={setRefreshMs} />
-        <Button variant="secondary" onClick={() => setCreateOpen(true)}>
-          <PlusIcon className="w-4 h-4" />
-          Create User
-        </Button>
         <Button variant="secondary" onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} disabled={syncMutation.isPending}>
           <ArrowPathIcon className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-          Sync with Remnawave
+          {t('syncWithRemnawave')}
         </Button>
         <Button variant="secondary" onClick={() => refetch()}>
           <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('refresh')}
         </Button>
       </div>
 
       {isError ? (
         <Card>
           <ErrorState
-            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to load users'}
+            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToLoadUsers')}
             onRetry={() => refetch()}
           />
         </Card>
@@ -118,12 +114,12 @@ export default function Users() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left bg-bg-tertiary/40">
-                  <Th>Name / Short UUID</Th>
-                  <Th>Created</Th>
-                  <Th>Expires</Th>
-                  <Th>Traffic</Th>
-                  <Th>Status</Th>
-                  <Th className="text-right">Actions</Th>
+                  <Th>{t('nameShortUuid')}</Th>
+                  <Th>{t('created')}</Th>
+                  <Th>{t('expires')}</Th>
+                  <Th>{t('traffic')}</Th>
+                  <Th>{t('status')}</Th>
+                  <Th className="text-right">{t('actions')}</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -142,8 +138,8 @@ export default function Users() {
                   <tr>
                     <td colSpan={6}>
                       <EmptyState
-                        message={users?.length === 0 ? 'No users found' : 'No matching users'}
-                        hint={users?.length === 0 ? undefined : 'Try adjusting your search filter.'}
+                        message={users?.length === 0 ? t('noUsersFound') : t('noMatchingUsers')}
+                        hint={users?.length === 0 ? undefined : t('tryAdjustingSearch')}
                         icon={<UsersIcon className="w-6 h-6" />}
                       />
                     </td>
@@ -165,16 +161,6 @@ export default function Users() {
         </Card>
       )}
 
-      <CreateUserModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onSuccess={(msg) => {
-          queryClient.invalidateQueries({ queryKey: ['users-all'] })
-          setCreateOpen(false)
-          success(msg)
-        }}
-        onError={toastError}
-      />
       <UserEditModal
         user={editUser}
         onClose={() => setEditUser(null)}
@@ -187,8 +173,8 @@ export default function Users() {
         open={!!deleteUser}
         onClose={() => setDeleteUser(null)}
         onConfirm={() => deleteUser && deleteMutation.mutate(deleteUser.short_uuid)}
-        title="Delete User"
-        message={`Delete user ${deleteUser?.short_uuid}? This action cannot be undone.`}
+        title={t('deleteUser')}
+        message={t('deleteUserConfirm', { uuid: deleteUser?.short_uuid || '' })}
         loading={deleteMutation.isPending}
       />
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
@@ -224,6 +210,7 @@ function UserRow({
   onDelete: () => void
   onCopySubUrl: () => void
 }) {
+  const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
   const isExpired = new Date(user.expires_at) < new Date()
   const created = new Date(user.created_at)
@@ -255,7 +242,7 @@ function UserRow({
                   <button
                     onClick={copyUuid}
                     className="text-text-muted hover:text-text-primary transition-all cursor-pointer shrink-0"
-                    title="Copy UUID"
+                    title={t('copyUUID')}
                   >
                     {copied ? <CheckIcon className="w-3 h-3 text-success" /> : <ClipboardDocumentIcon className="w-3 h-3" />}
                   </button>
@@ -267,7 +254,7 @@ function UserRow({
                 <button
                   onClick={copyUuid}
                   className="text-text-muted hover:text-text-primary sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
-                  title="Copy UUID"
+                  title={t('copyUUID')}
                 >
                   {copied ? <CheckIcon className="w-3.5 h-3.5 text-success" /> : <ClipboardDocumentIcon className="w-3.5 h-3.5" />}
                 </button>
@@ -291,9 +278,9 @@ function UserRow({
       </td>
       <td className="px-5 py-3">
         {exceeded ? (
-          <Badge variant="danger" dot>Traffic exceeded</Badge>
+          <Badge variant="danger" dot>{t('trafficExceeded')}</Badge>
         ) : (
-          <Badge variant={isExpired ? 'danger' : 'success'} dot>{isExpired ? 'Expired' : 'Active'}</Badge>
+          <Badge variant={isExpired ? 'danger' : 'success'} dot>{isExpired ? t('expired') : t('active')}</Badge>
         )}
       </td>
       <td className="px-5 py-3 text-right">
@@ -304,7 +291,7 @@ function UserRow({
               onCopySubUrl()
             }}
             className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors cursor-pointer"
-            title="Copy subscription URL"
+            title={t('copySubscriptionUrl')}
           >
             <LinkIcon className="w-3.5 h-3.5" />
           </button>
@@ -314,7 +301,7 @@ function UserRow({
               onDelete()
             }}
             className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer"
-            title="Delete"
+            title={t('delete')}
           >
             <TrashIcon className="w-3.5 h-3.5" />
           </button>
@@ -343,6 +330,7 @@ function UserEditModal({
   onToast: (message: string) => void
   onError: (message: string) => void
 }) {
+  const { t } = useLanguage()
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [expiry, setExpiry] = useState('')
@@ -393,10 +381,10 @@ function UserEditModal({
     },
     onSuccess: () => {
       invalidate()
-      onToast('Changes saved')
+      onToast(t('changesSaved'))
       onClose()
     },
-    onError: (err) => onError(errMsg(err, 'Failed to save changes')),
+    onError: (err) => onError(errMsg(err, t('failedToSaveChanges'))),
   })
 
   const resetMutation = useMutation({
@@ -405,19 +393,19 @@ function UserEditModal({
       invalidate()
       setConfirmReset(false)
       refetch()
-      onToast('Traffic reset')
+      onToast(t('trafficReset'))
     },
-    onError: (err) => onError(errMsg(err, 'Failed to reset traffic')),
+    onError: (err) => onError(errMsg(err, t('failedToResetTraffic'))),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => usersApi.delete(user!.short_uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-all'] })
-      onToast('User deleted')
+      onToast(t('userDeleted'))
       onDeleted()
     },
-    onError: (err) => onError(errMsg(err, 'Failed to delete user')),
+    onError: (err) => onError(errMsg(err, t('failedToDeleteUser'))),
   })
 
   if (!user) return null
@@ -426,58 +414,56 @@ function UserEditModal({
   const busy = saveMutation.isPending || deleteMutation.isPending
 
   return (
-    <Modal open={!!user} onClose={onClose} title="Edit User" description={user.name || user.short_uuid} wide>
+    <Modal open={!!user} onClose={onClose} title={t('editUser')} description={user.name || user.short_uuid} wide>
       <div className="space-y-5">
-        {/* User information */}
         <div className="space-y-2.5">
-          <SectionLabel>User information</SectionLabel>
+          <SectionLabel>{t('userInformation')}</SectionLabel>
           <div className="bg-bg-tertiary border border-border rounded-lg divide-y divide-border">
-            <InfoRow label="UUID">
+            <InfoRow label={t('uuid')}>
               <code className="text-sm font-mono text-accent">{user.short_uuid}</code>
             </InfoRow>
-            <InfoRow label="Name">
+            <InfoRow label={t('name')}>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Display name"
+                placeholder={t('displayName')}
                 className="w-48 h-7 bg-bg-secondary border border-border rounded px-2 text-xs text-text-primary
                   placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 text-right"
               />
             </InfoRow>
-            <InfoRow label="Subscription">
+            <InfoRow label={t('subscription')}>
               <button
                 onClick={() => onCopySubUrl(user)}
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover transition-colors cursor-pointer"
                 title={buildSubUrl(user.short_uuid)}
               >
                 <ClipboardDocumentIcon className="w-3.5 h-3.5" />
-                Copy sub URL
+                {t('copySubUrl')}
               </button>
             </InfoRow>
           </div>
         </div>
 
-        {/* Traffic settings */}
         <div className="space-y-2.5">
-          <SectionLabel>Traffic settings</SectionLabel>
+          <SectionLabel>{t('trafficSettings')}</SectionLabel>
           {isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-16 rounded-lg" />
               <Skeleton className="h-2 w-full" />
             </div>
           ) : isError ? (
-            <ErrorState message={errMsg(error, 'Failed to load traffic')} onRetry={() => refetch()} />
+            <ErrorState message={errMsg(error, t('failedToLoadTraffic'))} onRetry={() => refetch()} />
           ) : traffic ? (
             <>
               <div className="grid grid-cols-3 gap-3">
-                <StatBox label="Used" value={formatBytes(traffic.used)} />
-                <StatBox label="Limit" value={traffic.unlimited ? '∞' : formatBytes(traffic.limit)} />
-                <StatBox label="Remaining" value={traffic.unlimited ? '∞' : formatBytes(traffic.remaining)} />
+                <StatBox label={t('used')} value={formatBytes(traffic.used)} />
+                <StatBox label={t('limit')} value={traffic.unlimited ? '∞' : formatBytes(traffic.limit)} />
+                <StatBox label={t('remaining')} value={traffic.unlimited ? '∞' : formatBytes(traffic.remaining)} />
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs text-text-muted">
-                  <span>{traffic.unlimited ? 'Unlimited plan' : `${percent}% used`}</span>
-                  {traffic.exceeded && <span className="text-danger font-medium">Traffic exceeded</span>}
+                  <span>{traffic.unlimited ? t('unlimitedPlan') : t('percentUsed', { percent })}</span>
+                  {traffic.exceeded && <span className="text-danger font-medium">{t('trafficExceeded')}</span>}
                 </div>
                 <ProgressBar percent={percent} unlimited={traffic.unlimited} />
               </div>
@@ -488,71 +474,69 @@ function UserEditModal({
                   onChange={(e) => setUnlimited(e.target.checked)}
                   className="accent-accent w-4 h-4 cursor-pointer"
                 />
-                Unlimited traffic
+                {t('unlimitedTraffic')}
               </label>
               {!unlimited && (
                 <Input
-                  label="Traffic limit (GB)"
+                  label={t('trafficLimitGb')}
                   type="number"
                   min="0"
                   step="0.1"
                   value={limitGb}
                   onChange={(e) => setLimitGb(e.target.value)}
-                  placeholder="e.g. 100"
+                  placeholder={t('trafficLimitPlaceholder')}
                 />
               )}
             </>
           ) : null}
         </div>
 
-        {/* Time settings */}
         <div className="space-y-2.5">
-          <SectionLabel>Time settings</SectionLabel>
+          <SectionLabel>{t('timeSettings')}</SectionLabel>
           <Input
-            label="Expires at"
+            label={t('expiresAt')}
             type="datetime-local"
             value={expiry}
             onChange={(e) => setExpiry(e.target.value)}
           />
         </div>
 
-        {/* Actions */}
         <div className="border-t border-border pt-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {confirmReset ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-text-muted">Reset used traffic?</span>
+                <span className="text-xs text-text-muted">{t('resetUsedTraffic')}</span>
                 <Button size="sm" variant="danger" loading={resetMutation.isPending} onClick={() => resetMutation.mutate()}>
-                  Confirm
+                  {t('confirm')}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>Cancel</Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>{t('cancel')}</Button>
               </div>
             ) : (
               <Button size="sm" variant="secondary" disabled={busy || !traffic} onClick={() => setConfirmReset(true)}>
-                Reset traffic
+                {t('resetTraffic')}
               </Button>
             )}
             {confirmDelete ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-text-muted">Delete user?</span>
+                <span className="text-xs text-text-muted">{t('deleteUserConfirmShort')}</span>
                 <Button size="sm" variant="danger" loading={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
-                  Confirm
+                  {t('confirm')}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>{t('cancel')}</Button>
               </div>
             ) : (
               !confirmReset && (
                 <Button size="sm" variant="danger" disabled={busy} onClick={() => setConfirmDelete(true)}>
                   <TrashIcon className="w-3.5 h-3.5" />
-                  Delete user
+                  {t('deleteUserAction')}
                 </Button>
               )
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button variant="secondary" onClick={onClose}>{t('cancel')}</Button>
             <Button loading={saveMutation.isPending} disabled={deleteMutation.isPending} onClick={() => saveMutation.mutate()}>
-              Save changes
+              {t('saveChanges')}
             </Button>
           </div>
         </div>
@@ -570,71 +554,4 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
-function CreateUserModal({
-  open,
-  onClose,
-  onSuccess,
-  onError,
-}: {
-  open: boolean
-  onClose: () => void
-  onSuccess: (message: string) => void
-  onError: (message: string) => void
-}) {
-  const [shortUuid, setShortUuid] = useState('')
-  const [name, setName] = useState('')
-  const [expiresAt, setExpiresAt] = useState('')
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      usersApi.create({
-        short_uuid: shortUuid,
-        name: name || undefined,
-        expires_at: new Date(expiresAt).toISOString(),
-      }),
-    onSuccess: () => {
-      onSuccess(`User ${shortUuid} created`)
-      setShortUuid('')
-      setName('')
-      setExpiresAt('')
-      onClose()
-    },
-    onError: (err) => {
-      onError((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to create user')
-    },
-  })
-
-  const valid = shortUuid.trim() && expiresAt
-
-  return (
-    <Modal open={open} onClose={onClose} title="Create User">
-      <div className="space-y-4">
-        <Input
-          label="Short UUID *"
-          value={shortUuid}
-          onChange={(e) => setShortUuid(e.target.value)}
-          placeholder="e.g. 8f4a3bc2"
-        />
-        <Input
-          label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. John Smith"
-          hint="Display name (optional)"
-        />
-        <Input
-          label="Expires at *"
-          type="datetime-local"
-          value={expiresAt}
-          onChange={(e) => setExpiresAt(e.target.value)}
-        />
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => createMutation.mutate()} loading={createMutation.isPending} disabled={!valid}>
-            Create
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  )
-}

@@ -1,18 +1,31 @@
 import Badge from '../ui/Badge'
+import { useLanguage, type TranslationKey } from '../../i18n/useLanguage'
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info'
 
-const statusMap: Record<string, { variant: BadgeVariant; label: string }> = {
-  running: { variant: 'success', label: 'Running' },
-  restarting: { variant: 'warning', label: 'Restarting' },
-  created: { variant: 'info', label: 'Created' },
-  paused: { variant: 'warning', label: 'Paused' },
-  exited: { variant: 'danger', label: 'Stopped' },
-  dead: { variant: 'danger', label: 'Dead' },
-  removing: { variant: 'warning', label: 'Removing' },
+const statusVariants: Record<string, BadgeVariant> = {
+  running: 'success',
+  restarting: 'warning',
+  created: 'info',
+  paused: 'warning',
+  exited: 'danger',
+  dead: 'danger',
+  removing: 'warning',
+}
+
+const statusKeys: Record<string, TranslationKey> = {
+  running: 'running',
+  restarting: 'restarting',
+  created: 'created',
+  paused: 'paused',
+  exited: 'stopped',
+  dead: 'dead',
+  removing: 'removing',
 }
 
 export default function StatusBadge({ status }: { status: string }) {
-  const s = statusMap[status] || { variant: 'default' as BadgeVariant, label: status }
-  return <Badge variant={s.variant} dot>{s.label}</Badge>
+  const { t } = useLanguage()
+  const variant = statusVariants[status] || 'default'
+  const label = statusKeys[status] ? t(statusKeys[status]) : status
+  return <Badge variant={variant} dot>{label}</Badge>
 }

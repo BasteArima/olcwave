@@ -8,6 +8,7 @@ import { profilesApi } from '../api/profiles'
 import { containersApi } from '../api/containers'
 import { formatBytes } from '../utils/format'
 import { useAutoRefresh } from '../utils/useAutoRefresh'
+import { useLanguage } from '../i18n/useLanguage'
 import type { User, Profile } from '../types'
 import {
   UsersIcon,
@@ -21,6 +22,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
+  const { t } = useLanguage()
   const [refreshMs, setRefreshMs] = useAutoRefresh('dashboard')
 
   const usersQuery = useQuery({
@@ -57,34 +59,34 @@ export default function Dashboard() {
       </div>
 
       <section>
-        <h2 className="text-sm font-semibold text-text-secondary mb-4">Overview</h2>
+        <h2 className="text-sm font-semibold text-text-secondary mb-4">{t('overview')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[104px] rounded-xl" />)
           ) : (
             <>
               <StatCard
-                title="Users"
+                title={t('users')}
                 value={users.length}
-                subtitle={`${activeUsers} active`}
+                subtitle={t('nActive', { n: activeUsers })}
                 icon={<UsersIcon className="w-5 h-5" />}
               />
               <StatCard
-                title="Profiles"
+                title={t('profiles')}
                 value={profiles.length}
-                subtitle={`${profiles.length} configs`}
+                subtitle={t('nConfigs', { n: profiles.length })}
                 icon={<UserCircleIcon className="w-5 h-5" />}
               />
               <StatCard
-                title="Status"
-                value="Online"
-                subtitle="API responding"
+                title={t('status')}
+                value={t('online')}
+                subtitle={t('apiResponding')}
                 icon={<ServerIcon className="w-5 h-5" />}
               />
               <StatCard
-                title="Subscriptions"
+                title={t('subscriptions')}
                 value={users.length}
-                subtitle="Public links"
+                subtitle={t('publicLinks')}
                 icon={<LinkIcon className="w-5 h-5" />}
               />
             </>
@@ -93,34 +95,34 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold text-text-secondary mb-4">Total Traffic Usage</h2>
+        <h2 className="text-sm font-semibold text-text-secondary mb-4">{t('totalTrafficUsage')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[104px] rounded-xl" />)
           ) : (
             <>
               <StatCard
-                title="Used"
+                title={t('used')}
                 value={formatBytes(totalTrafficUsed)}
-                subtitle="Across all users"
+                subtitle={t('acrossAllUsers')}
                 icon={<ChartBarIcon className="w-5 h-5" />}
               />
               <StatCard
-                title="Users"
+                title={t('users')}
                 value={users.length}
-                subtitle={`${exceededUsers} over limit`}
+                subtitle={t('nOverLimit', { n: exceededUsers })}
                 icon={<UsersIcon className="w-5 h-5" />}
               />
               <StatCard
-                title="Containers"
+                title={t('containers')}
                 value={containers.length}
-                subtitle={`${containers.filter((c) => c.status === 'running').length} running`}
+                subtitle={t('nRunning', { n: containers.filter((c) => c.status === 'running').length })}
                 icon={<CubeIcon className="w-5 h-5" />}
               />
               <StatCard
-                title="Profiles"
+                title={t('profiles')}
                 value={profiles.length}
-                subtitle="Active configs"
+                subtitle={t('activeConfigs')}
                 icon={<UserCircleIcon className="w-5 h-5" />}
               />
             </>
@@ -148,13 +150,14 @@ function RowSkeleton() {
 }
 
 function RecentUsers({ users, loading }: { users: User[]; loading: boolean }) {
+  const { t } = useLanguage()
   return (
     <Card>
       <CardHeader
-        title="Recent Users"
+        title={t('recentUsers')}
         action={
           <Link to="/users" className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors">
-            View all <ArrowRightIcon className="w-3 h-3" />
+            {t('viewAll')} <ArrowRightIcon className="w-3 h-3" />
           </Link>
         }
       />
@@ -163,7 +166,7 @@ function RecentUsers({ users, loading }: { users: User[]; loading: boolean }) {
           {Array.from({ length: 4 }).map((_, i) => <RowSkeleton key={i} />)}
         </div>
       ) : users.length === 0 ? (
-        <EmptyState message="No users yet" icon={<UsersIcon className="w-6 h-6" />} />
+        <EmptyState message={t('noUsersYet')} icon={<UsersIcon className="w-6 h-6" />} />
       ) : (
         <div className="divide-y divide-border">
           {users.map((u) => (
@@ -179,13 +182,14 @@ function RecentUsers({ users, loading }: { users: User[]; loading: boolean }) {
 }
 
 function RecentProfiles({ profiles, loading }: { profiles: Profile[]; loading: boolean }) {
+  const { t } = useLanguage()
   return (
     <Card>
       <CardHeader
-        title="Recent Profiles"
+        title={t('recentProfiles')}
         action={
           <Link to="/profiles" className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors">
-            View all <ArrowRightIcon className="w-3 h-3" />
+            {t('viewAll')} <ArrowRightIcon className="w-3 h-3" />
           </Link>
         }
       />
@@ -194,7 +198,7 @@ function RecentProfiles({ profiles, loading }: { profiles: Profile[]; loading: b
           {Array.from({ length: 4 }).map((_, i) => <RowSkeleton key={i} />)}
         </div>
       ) : profiles.length === 0 ? (
-        <EmptyState message="No profiles yet" icon={<UserCircleIcon className="w-6 h-6" />} />
+        <EmptyState message={t('noProfilesYet')} icon={<UserCircleIcon className="w-6 h-6" />} />
       ) : (
         <div className="divide-y divide-border">
           {profiles.map((p) => (
@@ -210,6 +214,7 @@ function RecentProfiles({ profiles, loading }: { profiles: Profile[]; loading: b
 }
 
 function QuickLookup() {
+  const { t } = useLanguage()
   const [uuid, setUuid] = useState('')
   const [tag, setTag] = useState('')
 
@@ -227,12 +232,12 @@ function QuickLookup() {
 
   return (
     <section>
-      <h2 className="text-sm font-semibold text-text-secondary mb-4">Quick Lookup</h2>
+      <h2 className="text-sm font-semibold text-text-secondary mb-4">{t('quickLookup')}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <UsersIcon className="w-4 h-4 text-text-muted" />
-            <h3 className="text-sm font-medium text-text-primary">Find User</h3>
+            <h3 className="text-sm font-medium text-text-primary">{t('findUser')}</h3>
           </div>
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -241,7 +246,7 @@ function QuickLookup() {
                 value={uuid}
                 onChange={(e) => setUuid(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && uuid && userQuery.refetch()}
-                placeholder="User short UUID"
+                placeholder={t('userShortUuid')}
                 className="w-full h-9 bg-bg-tertiary border border-border rounded-md pl-9 pr-3 text-sm text-text-primary
                   placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
               />
@@ -253,23 +258,23 @@ function QuickLookup() {
                 text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors cursor-pointer
                 disabled:opacity-40 disabled:pointer-events-none"
             >
-              Lookup
+              {t('lookup')}
             </button>
           </div>
           {userQuery.data && (
             <div className="mt-3 bg-bg-tertiary border border-border rounded-lg p-3 text-xs space-y-1.5 animate-fade-in">
-              <Field label="UUID" value={userQuery.data.short_uuid} mono />
-              <Field label="Created" value={new Date(userQuery.data.created_at).toLocaleString()} />
-              <Field label="Expires" value={new Date(userQuery.data.expires_at).toLocaleString()} />
+              <Field label={t('uuid')} value={userQuery.data.short_uuid} mono />
+              <Field label={t('created')} value={new Date(userQuery.data.created_at).toLocaleString()} />
+              <Field label={t('expires')} value={new Date(userQuery.data.expires_at).toLocaleString()} />
             </div>
           )}
-          {userQuery.isError && <p className="mt-3 text-xs text-danger">User not found</p>}
+          {userQuery.isError && <p className="mt-3 text-xs text-danger">{t('userNotFound')}</p>}
         </Card>
 
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <UserCircleIcon className="w-4 h-4 text-text-muted" />
-            <h3 className="text-sm font-medium text-text-primary">Find Profile</h3>
+            <h3 className="text-sm font-medium text-text-primary">{t('findProfile')}</h3>
           </div>
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -278,7 +283,7 @@ function QuickLookup() {
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && tag && profileQuery.refetch()}
-                placeholder="Profile tag"
+                placeholder={t('profileTag')}
                 className="w-full h-9 bg-bg-tertiary border border-border rounded-md pl-9 pr-3 text-sm text-text-primary
                   placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
               />
@@ -290,16 +295,16 @@ function QuickLookup() {
                 text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors cursor-pointer
                 disabled:opacity-40 disabled:pointer-events-none"
             >
-              Lookup
+              {t('lookup')}
             </button>
           </div>
           {profileQuery.data && (
             <div className="mt-3 bg-bg-tertiary border border-border rounded-lg p-3 text-xs space-y-1.5 animate-fade-in">
-              <Field label="Name" value={profileQuery.data.name} />
-              <Field label="Tag" value={profileQuery.data.tag} mono />
+              <Field label={t('name')} value={profileQuery.data.name} />
+              <Field label={t('tag')} value={profileQuery.data.tag} mono />
             </div>
           )}
-          {profileQuery.isError && <p className="mt-3 text-xs text-danger">Profile not found</p>}
+          {profileQuery.isError && <p className="mt-3 text-xs text-danger">{t('profileNotFound')}</p>}
         </Card>
       </div>
     </section>

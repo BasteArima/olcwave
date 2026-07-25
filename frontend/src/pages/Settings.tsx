@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { settingsApi, type RuntimeSettings } from '../api/settings'
 import { useAuthStore } from '../store/auth'
+import { useLanguage, type TranslationKey } from '../i18n/useLanguage'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Select from '../components/ui/Select'
@@ -14,15 +15,15 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
-const RW_SYNC_OPTIONS = [
-  { value: '1m', label: 'Every minute' },
-  { value: '5m', label: 'Every 5 minutes' },
-  { value: '1h', label: 'Every hour' },
-  { value: '2h', label: 'Every 4 hours' },
-  { value: '6h', label: 'Every 6 hours' },
-  { value: '12h', label: 'Every 12 hours' },
-  { value: '24h', label: 'Once a day' },
-  { value: '__other__', label: 'Other...' },
+const RW_SYNC_OPTIONS: { value: string; labelKey: TranslationKey }[] = [
+  { value: '1m', labelKey: 'everyMinute' },
+  { value: '5m', labelKey: 'every5Minutes' },
+  { value: '1h', labelKey: 'everyHour' },
+  { value: '2h', labelKey: 'every4Hours' },
+  { value: '6h', labelKey: 'every6Hours' },
+  { value: '12h', labelKey: 'every12Hours' },
+  { value: '24h', labelKey: 'onceADay' },
+  { value: '__other__', labelKey: 'other' },
 ]
 
 function isValidInterval(val: string): boolean {
@@ -42,14 +43,14 @@ function parseDurationMinutes(val: string): number | null {
   return number * multiplier[unit]
 }
 
-function getDurationError(val: string): string {
+function getDurationError(val: string, tr: (key: TranslationKey) => string): string {
   if (!isValidDuration(val)) {
-    return 'Invalid format. Use <number> + m/h/d (e.g. 5m, 1h, 7d).'
+    return tr('invalidFormatDuration')
   }
   const minutes = parseDurationMinutes(val)
-  if (minutes === null) return 'Invalid duration.'
-  if (minutes < 5) return 'Interval must be at least 5m.'
-  if (minutes > 43200) return 'Interval must be at most 30d.'
+  if (minutes === null) return tr('invalidDuration')
+  if (minutes < 5) return tr('intervalMin5m')
+  if (minutes > 43200) return tr('intervalMax30d')
   return ''
 }
 
@@ -60,6 +61,7 @@ function formatDatetime(iso: string | null): string {
 }
 
 export default function Settings() {
+  const { t } = useLanguage()
   const logout = useAuthStore((s) => s.logout)
   const { toasts, dismiss, success, error: toastError } = useToasts()
   const queryClient = useQueryClient()
@@ -98,12 +100,12 @@ export default function Settings() {
     mutationFn: (data: RuntimeSettings) => settingsApi.update(data).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
-      success('Settings saved')
+      success(t('settingsSaved'))
     },
     onError: (err) => {
       toastError(
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-          'Failed to save settings',
+          t('failedToSaveSettings'),
       )
     },
   })
@@ -112,8 +114,8 @@ export default function Settings() {
   const effectiveSync = isCustom
     ? customSync
     : syncMode
-  const syncError = isCustom && customSync && !isValidInterval(customSync) ? 'Invalid format. Use number + s/m/h (e.g. 10m, 4h).' : ''
-  const subIntervalError = subUpdateInterval ? getDurationError(subUpdateInterval) : ''
+  const syncError = isCustom && customSync && !isValidInterval(customSync) ? t('invalidFormatNumberSuffix') : ''
+  const subIntervalError = subUpdateInterval ? getDurationError(subUpdateInterval, t) : ''
 
   const handleSave = () => {
     saveMutation.mutate({
@@ -137,78 +139,78 @@ export default function Settings() {
   return (
     <div className="max-w-2xl space-y-5">
       <Card>
-        <CardHeader title="Traffic settings" />
+        <CardHeader title={t('trafficSettingsTitle')} />
         <div className="px-5 py-4 space-y-4">
           <Input
-            label="Subscription name"
+            label={t('subscriptionName')}
             value={subName}
             onChange={(e) => setSubName(e.target.value)}
-            placeholder="My VPN"
-            hint="Service name used in subscriptions"
+            placeholder={t('myVpn')}
+            hint={t('serviceNameHint')}
             disabled={isLoading}
           />
           <Input
-            label="Default traffic limit (GB)"
+            label={t('defaultTrafficLimitGb')}
             type="number"
             min="0"
             step="0.1"
             value={defaultTrafficGb}
             onChange={(e) => setDefaultTrafficGb(e.target.value)}
-            placeholder="e.g. 100"
-            hint="Default traffic limit for new users"
+            placeholder={t('trafficLimitPlaceholder')}
+            hint={t('defaultTrafficHint')}
             disabled={isLoading}
           />
           <Input
-            label="Subscription update interval"
+            label={t('subscriptionUpdateInterval')}
             value={subUpdateInterval}
             onChange={(e) => setSubUpdateInterval(e.target.value)}
             placeholder="e.g. 1h"
-            hint="Format: number + m/h/d (5m–30d)"
+            hint={t('subIntervalHint')}
             error={subIntervalError}
             disabled={isLoading}
           />
           <Input
-            label="Traffic collect interval (seconds)"
+            label={t('trafficCollectInterval')}
             type="number"
             min="1"
             step="1"
             value={collectInterval}
             onChange={(e) => setCollectInterval(e.target.value)}
             placeholder="e.g. 10"
-            hint="How often backend checks container traffic usage"
+            hint={t('trafficCollectHint')}
             disabled={isLoading}
           />
           <div className="flex justify-end pt-1">
             <Button onClick={handleSave} loading={saveMutation.isPending} disabled={isLoading || !!subIntervalError}>
-              Save settings
+              {t('saveSettings')}
             </Button>
           </div>
         </div>
       </Card>
 
       <Card>
-        <CardHeader title="Remnawave synchronization" />
+        <CardHeader title={t('remnawaveSync')} />
         <div className="px-5 py-4 space-y-4">
           <Select
-            label="Auto sync users"
-            options={RW_SYNC_OPTIONS}
+            label={t('autoSyncUsers')}
+            options={RW_SYNC_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
             value={syncMode}
             onChange={(e) => handleSyncSelect(e.target.value)}
             disabled={isLoading}
           />
           {isCustom && (
             <Input
-              label="Custom interval"
+              label={t('customInterval')}
               value={customSync}
               onChange={(e) => setCustomSync(e.target.value)}
               placeholder="e.g. 10m"
               error={syncError}
-              hint={'Format: number + time unit.\n30s - seconds\n10m - minutes\n4h - hours'}
+              hint={t('customIntervalHint')}
               disabled={isLoading}
             />
           )}
           <div className="flex items-center justify-between gap-4 py-2 border-t border-border">
-            <span className="text-xs text-text-muted">Last sync</span>
+            <span className="text-xs text-text-muted">{t('lastSync')}</span>
             <span className="text-xs text-text-primary tabular-nums">{formatDatetime(lastSyncAt)}</span>
           </div>
           <div className="flex justify-end pt-1">
@@ -217,7 +219,7 @@ export default function Settings() {
               loading={saveMutation.isPending}
               disabled={isLoading || !!syncError}
             >
-              Save settings
+              {t('saveSettings')}
             </Button>
           </div>
         </div>
@@ -226,16 +228,16 @@ export default function Settings() {
       <Card className="border-danger/20">
         <div className="px-5 py-3.5 border-b border-danger/20 flex items-center gap-2">
           <ExclamationTriangleIcon className="w-4 h-4 text-danger" />
-          <h3 className="text-xs font-semibold text-danger uppercase tracking-wider">Danger Zone</h3>
+          <h3 className="text-xs font-semibold text-danger uppercase tracking-wider">{t('dangerZone')}</h3>
         </div>
         <div className="p-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-text-primary">Sign out</p>
-            <p className="text-xs text-text-muted mt-0.5">End your current session and return to login.</p>
+            <p className="text-sm font-medium text-text-primary">{t('signOut')}</p>
+            <p className="text-xs text-text-muted mt-0.5">{t('signOutDescription')}</p>
           </div>
           <Button variant="danger" onClick={logout}>
             <ArrowLeftOnRectangleIcon className="w-4 h-4" />
-            Logout
+            {t('logout')}
           </Button>
         </div>
       </Card>

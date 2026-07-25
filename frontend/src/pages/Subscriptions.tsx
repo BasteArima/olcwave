@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { subscriptionsApi } from '../api/subscriptions'
 import type { SubscriptionBundle } from '../types'
+import { useLanguage } from '../i18n/useLanguage'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { Card, CardHeader, LoadingState, ErrorState, EmptyState } from '../components/ui/Misc'
@@ -15,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Subscriptions() {
+  const { t } = useLanguage()
   const [uuid, setUuid] = useState('')
   const [activeUuid, setActiveUuid] = useState('')
 
@@ -40,24 +42,24 @@ export default function Subscriptions() {
             value={uuid}
             onChange={(e) => setUuid(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="Enter short UUID to view subscription..."
+            placeholder={t('enterShortUuid')}
             className="w-full h-9 bg-bg-tertiary border border-border rounded-md pl-9 pr-3 text-sm text-text-primary
               placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
         <Button onClick={handleSearch}>
           <MagnifyingGlassIcon className="w-4 h-4" />
-          Fetch
+          {t('fetch')}
         </Button>
       </div>
 
       {activeUuid && <PublicUrlCard url={publicUrl} />}
 
-      {isLoading && <Card><LoadingState text="Fetching subscription bundle..." /></Card>}
+      {isLoading && <Card><LoadingState text={t('fetchingBundle')} /></Card>}
       {isError && (
         <Card>
           <ErrorState
-            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to fetch subscription'}
+            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToFetchSubscription')}
             onRetry={() => refetch()}
           />
         </Card>
@@ -66,8 +68,8 @@ export default function Subscriptions() {
       {!activeUuid && !isLoading && (
         <Card>
           <EmptyState
-            message="No subscription loaded"
-            hint="Enter a user's short UUID above to inspect their subscription bundle and locations."
+            message={t('noSubscriptionLoaded')}
+            hint={t('subscriptionHint')}
             icon={<LinkIcon className="w-6 h-6" />}
           />
         </Card>
@@ -77,6 +79,7 @@ export default function Subscriptions() {
 }
 
 function PublicUrlCard({ url }: { url: string }) {
+  const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
   const copy = () => {
     navigator.clipboard.writeText(url)
@@ -90,28 +93,29 @@ function PublicUrlCard({ url }: { url: string }) {
         <LinkIcon className="w-4.5 h-4.5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-text-muted mb-0.5">Public Subscription URL</p>
+        <p className="text-xs text-text-muted mb-0.5">{t('publicSubscriptionUrl')}</p>
         <code className="text-xs text-accent font-mono break-all">{url}</code>
       </div>
       <Button variant="secondary" size="sm" onClick={copy}>
         {copied ? <CheckIcon className="w-3.5 h-3.5 text-success" /> : <ClipboardDocumentIcon className="w-3.5 h-3.5" />}
-        {copied ? 'Copied' : 'Copy'}
+        {copied ? t('copied') : t('copy')}
       </Button>
     </Card>
   )
 }
 
 function SubscriptionBundleView({ bundle }: { bundle: SubscriptionBundle }) {
+  const { t } = useLanguage()
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatBox label="Version" value={String(bundle.version)} />
-        <StatBox label="Active Location" value={bundle.active_location_id} mono />
-        <StatBox label="Locations" value={String(bundle.locations.length)} />
+        <StatBox label={t('version')} value={String(bundle.version)} />
+        <StatBox label={t('activeLocation')} value={bundle.active_location_id} mono />
+        <StatBox label={t('locations')} value={String(bundle.locations.length)} />
       </div>
 
       <Card className="overflow-hidden">
-        <CardHeader title="Locations" />
+        <CardHeader title={t('locations')} />
         <div className="divide-y divide-border">
           {bundle.locations.map((loc) => {
             const isActive = loc.storage_id === bundle.active_location_id
@@ -127,15 +131,15 @@ function SubscriptionBundleView({ bundle }: { bundle: SubscriptionBundle }) {
                   </div>
                   {isActive && (
                     <span className="flex items-center gap-1 text-xs text-success shrink-0">
-                      <CheckCircleIcon className="w-4 h-4" /> Active
+                      <CheckCircleIcon className="w-4 h-4" /> {t('active')}
                     </span>
                   )}
                 </div>
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                  <DetailRow label="Storage ID" value={loc.storage_id} />
-                  <DetailRow label="Auth" value={loc.auth_provider} />
+                  <DetailRow label={t('storageId')} value={loc.storage_id} />
+                  <DetailRow label={t('auth')} value={loc.auth_provider} />
                   <div className="sm:col-span-2">
-                    <DetailRow label="Room ID" value={loc.endpoint.room_id} />
+                    <DetailRow label={t('roomId')} value={loc.endpoint.room_id} />
                   </div>
                 </div>
               </div>

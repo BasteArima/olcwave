@@ -1,22 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowPathIcon, CheckIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { AUTO_REFRESH_OPTIONS } from '../../utils/useAutoRefresh'
+import { useLanguage } from '../../i18n/useLanguage'
 
 interface AutoRefreshSelectProps {
   value: number
   onChange: (ms: number) => void
 }
 
-/**
- * "Auto refresh" dropdown matching the design system — a themed popover with
- * highlighted active option, instead of a native OS-styled <select>.
- * Off / 5 / 10 / 20 / 30 seconds. The icon spins while auto-refresh is active.
- */
+function useRefreshLabel(value: number) {
+  const { t } = useLanguage()
+  const opt = AUTO_REFRESH_OPTIONS.find((o) => o.value === value)
+  if (!opt) return AUTO_REFRESH_OPTIONS[0].label
+  if (opt.value === 0) return t('off')
+  if (opt.value === 5000) return t('seconds5')
+  if (opt.value === 10000) return t('seconds10')
+  if (opt.value === 20000) return t('seconds20')
+  if (opt.value === 30000) return t('seconds30')
+  return opt.label
+}
+
 export default function AutoRefreshSelect({ value, onChange }: AutoRefreshSelectProps) {
+  const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const active = value > 0
-  const current = AUTO_REFRESH_OPTIONS.find((o) => o.value === value) ?? AUTO_REFRESH_OPTIONS[0]
+  const currentLabel = useRefreshLabel(value)
 
   useEffect(() => {
     if (!open) return
@@ -48,8 +57,8 @@ export default function AutoRefreshSelect({ value, onChange }: AutoRefreshSelect
           className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-accent animate-spin' : 'text-text-muted'}`}
           style={active ? { animationDuration: '2.5s' } : undefined}
         />
-        <span className="text-text-muted whitespace-nowrap">Auto refresh</span>
-        <span className="text-text-primary tabular-nums whitespace-nowrap">{current.label}</span>
+        <span className="text-text-muted whitespace-nowrap">{t('autoRefresh')}</span>
+        <span className="text-text-primary tabular-nums whitespace-nowrap">{currentLabel}</span>
         <ChevronDownIcon className={`w-3.5 h-3.5 text-text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -61,6 +70,13 @@ export default function AutoRefreshSelect({ value, onChange }: AutoRefreshSelect
         >
           {AUTO_REFRESH_OPTIONS.map((opt) => {
             const selected = opt.value === value
+            let optionLabel: string
+            if (opt.value === 0) optionLabel = t('off')
+            else if (opt.value === 5000) optionLabel = t('seconds5')
+            else if (opt.value === 10000) optionLabel = t('seconds10')
+            else if (opt.value === 20000) optionLabel = t('seconds20')
+            else if (opt.value === 30000) optionLabel = t('seconds30')
+            else optionLabel = opt.label
             return (
               <button
                 key={opt.value}
@@ -76,7 +92,7 @@ export default function AutoRefreshSelect({ value, onChange }: AutoRefreshSelect
                     ? 'bg-accent/10 text-accent'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'}`}
               >
-                {opt.label}
+                {optionLabel}
                 {selected && <CheckIcon className="w-3.5 h-3.5 shrink-0" />}
               </button>
             )

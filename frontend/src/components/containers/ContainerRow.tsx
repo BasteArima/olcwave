@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Container } from '../../types'
 import { containersApi } from '../../api/containers'
 import { formatBytes, formatRate, formatUptime } from '../../utils/format'
+import { useLanguage } from '../../i18n/useLanguage'
 import StatusBadge from './StatusBadge'
 import {
   PlayIcon,
@@ -36,6 +37,7 @@ export default function ContainerRow({
   onSuccess,
   colSpan,
 }: ContainerRowProps) {
+  const { t } = useLanguage()
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
@@ -46,10 +48,10 @@ export default function ContainerRow({
     },
     onSuccess: (_data, { action }) => {
       queryClient.invalidateQueries({ queryKey: ['containers-all'] })
-      onSuccess(`Container ${container.name} — ${action} succeeded`)
+      onSuccess(t('containerActionSuccess', { name: container.name, action }))
     },
     onError: (err: { response?: { data?: { detail?: string } } }, { action }) => {
-      onError(err?.response?.data?.detail || `Failed to ${action} ${container.name}`)
+      onError(err?.response?.data?.detail || t('failedToActionContainer', { name: container.name, action }))
     },
   })
 
@@ -109,7 +111,7 @@ export default function ContainerRow({
           <div className="flex items-center justify-end gap-0.5">
             <ActionButton
               icon={isRunning ? StopIcon : PlayIcon}
-              label={isRunning ? 'Stop' : 'Start'}
+              label={isRunning ? t('stop') : t('start')}
               onClick={() => mutation.mutate({ action: isRunning ? 'stop' : 'run' })}
               loading={pending === 'stop' || pending === 'run'}
               disabled={mutation.isPending}
@@ -117,13 +119,13 @@ export default function ContainerRow({
             />
             <ActionButton
               icon={ArrowPathIcon}
-              label="Restart"
+              label={t('restart')}
               onClick={() => mutation.mutate({ action: 'restart' })}
               loading={pending === 'restart'}
               disabled={mutation.isPending}
             />
-            <ActionButton icon={DocumentTextIcon} label="Logs" onClick={() => onLogs(container)} disabled={mutation.isPending} />
-            <ActionButton icon={CodeBracketIcon} label="Config" onClick={() => onConfig(container)} disabled={mutation.isPending} />
+            <ActionButton icon={DocumentTextIcon} label={t('logs')} onClick={() => onLogs(container)} disabled={mutation.isPending} />
+            <ActionButton icon={CodeBracketIcon} label={t('config')} onClick={() => onConfig(container)} disabled={mutation.isPending} />
           </div>
         </td>
       </tr>
@@ -132,14 +134,14 @@ export default function ContainerRow({
         <tr className="bg-bg-tertiary/30">
           <td colSpan={colSpan} className="px-5 py-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3 text-xs animate-fade-in">
-              <Detail label="Container Name" value={container.name} mono />
-              <Detail label="Container ID" value={container.id} mono />
-              <Detail label="Image" value={container.image} mono />
-              <Detail label="Status" value={container.status} />
-              <Detail label="User ID" value={container.short_uuid} mono />
-              <Detail label="Config Tag" value={container.config_tag} mono />
-              <Detail label="Created" value={`${created.toLocaleDateString()} ${created.toLocaleTimeString()}`} />
-              {isRunning && <Detail label="Running For" value={formatUptime(created)} />}
+              <Detail label={t('containerName')} value={container.name} mono />
+              <Detail label={t('containerId')} value={container.id} mono />
+              <Detail label={t('image')} value={container.image} mono />
+              <Detail label={t('status')} value={container.status} />
+              <Detail label={t('userId')} value={container.short_uuid} mono />
+              <Detail label={t('configTag')} value={container.config_tag} mono />
+              <Detail label={t('created')} value={`${created.toLocaleDateString()} ${created.toLocaleTimeString()}`} />
+              {isRunning && <Detail label={t('runningFor')} value={formatUptime(created)} />}
             </div>
           </td>
         </tr>

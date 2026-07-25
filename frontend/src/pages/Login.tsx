@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
+import { useLanguage } from '../i18n/useLanguage'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 import { BoltIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 
 export default function Login() {
+  const { t } = useLanguage()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ export default function Login() {
       navigate('/dashboard')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setError(msg || 'Login failed')
+      setError(msg || t('loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -35,8 +37,8 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent/15 text-accent mb-4 shadow-glow">
             <BoltIcon className="w-7 h-7" />
           </div>
-          <h1 className="text-xl font-bold text-text-primary tracking-tight">OLC Wave</h1>
-          <p className="text-sm text-text-muted mt-1">Sign in to the admin panel</p>
+          <h1 className="text-xl font-bold text-text-primary tracking-tight">{t('appName')}</h1>
+          <p className="text-sm text-text-muted mt-1">{t('signInTitle')}</p>
         </div>
 
         <form
@@ -50,7 +52,7 @@ export default function Login() {
             </div>
           )}
           <Input
-            label="Username"
+            label={t('username')}
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -59,21 +61,21 @@ export default function Login() {
             required
           />
           <Input
-            label="Password"
+            label={t('password')}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
+            placeholder={t('password')}
             autoComplete="current-password"
             required
           />
           <Button type="submit" size="lg" loading={loading} className="w-full">
-            Sign In
+            {t('signIn')}
           </Button>
         </form>
 
         <p className="text-center text-xs text-text-muted mt-6">
-          OLC Wave · Admin Panel
+          {t('footerAdminPanel')}
         </p>
       </div>
     </div>

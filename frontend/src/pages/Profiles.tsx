@@ -6,6 +6,7 @@ import { validateYaml } from '../utils/yamlValidator'
 import { stripProfileFields } from '../utils/profileConfig'
 import { checkTagUniqueness } from '../utils/tagValidator'
 import { useDebounce } from '../utils/useDebounce'
+import { useLanguage } from '../i18n/useLanguage'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Modal from '../components/ui/Modal'
@@ -27,6 +28,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Profiles() {
+  const { t } = useLanguage()
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [editProfile, setEditProfile] = useState<Profile | null>(null)
@@ -62,26 +64,26 @@ export default function Profiles() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter profiles..."
+            placeholder={t('filterProfiles')}
             className="w-full h-9 bg-bg-tertiary border border-border rounded-md pl-9 pr-3 text-sm text-text-primary
               placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
           />
         </div>
-        <span className="text-xs text-text-muted tabular-nums">{filtered.length} profiles</span>
+        <span className="text-xs text-text-muted tabular-nums">{t('nProfiles', { n: filtered.length })}</span>
         <Button variant="secondary" onClick={() => refetch()}>
           <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('refresh')}
         </Button>
         <Button onClick={() => setCreateOpen(true)}>
           <PlusIcon className="w-4 h-4" />
-          New Profile
+          {t('newProfile')}
         </Button>
       </div>
 
       {isError ? (
         <Card>
           <ErrorState
-            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to load profiles'}
+            message={(error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || t('failedToLoadProfiles')}
             onRetry={() => refetch()}
           />
         </Card>
@@ -91,10 +93,10 @@ export default function Profiles() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left bg-bg-tertiary/40">
-                  <Th>Name</Th>
-                  <Th>Tag</Th>
-                  <Th>Config Preview</Th>
-                  <Th className="text-right">Actions</Th>
+                  <Th>{t('name')}</Th>
+                  <Th>{t('tag')}</Th>
+                  <Th>{t('configPreview')}</Th>
+                  <Th className="text-right">{t('actions')}</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -111,14 +113,14 @@ export default function Profiles() {
                   <tr>
                     <td colSpan={4}>
                       <EmptyState
-                        message={profiles?.length === 0 ? 'No profiles yet' : 'No matching profiles'}
-                        hint={profiles?.length === 0 ? 'Create your first configuration profile to get started.' : 'Try adjusting your search filter.'}
+                        message={profiles?.length === 0 ? t('noProfilesList') : t('noMatchingProfiles')}
+                        hint={profiles?.length === 0 ? t('createFirstProfile') : t('tryAdjustingSearch')}
                         icon={<UserCircleIcon className="w-6 h-6" />}
                         action={
                           profiles?.length === 0 ? (
                             <Button size="sm" onClick={() => setCreateOpen(true)}>
                               <PlusIcon className="w-4 h-4" />
-                              New Profile
+                              {t('newProfile')}
                             </Button>
                           ) : undefined
                         }
@@ -150,7 +152,7 @@ export default function Profiles() {
                               setDeleteProfile(profile)
                             }}
                             className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer"
-                            title="Delete"
+                            title={t('delete')}
                           >
                             <TrashIcon className="w-3.5 h-3.5" />
                           </button>
@@ -170,8 +172,8 @@ export default function Profiles() {
         open={!!deleteProfile}
         onClose={() => setDeleteProfile(null)}
         onConfirm={() => deleteProfile && deleteMutation.mutate(deleteProfile.tag)}
-        title="Delete Profile"
-        message={`Delete profile "${deleteProfile?.tag}"? This will stop all running containers using this profile.`}
+        title={t('deleteProfile')}
+        message={t('deleteProfileConfirm', { tag: deleteProfile?.tag || '' })}
         loading={deleteMutation.isPending}
       />
     </div>
@@ -236,54 +238,46 @@ function FormError({ message }: { message: string }) {
 }
 
 function ProfileHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useLanguage()
   return (
-    <Modal open={open} onClose={onClose} title="How to create a profile">
+    <Modal open={open} onClose={onClose} title={t('howToCreateProfile')}>
       <div className="space-y-4 text-sm text-text-primary">
         <section>
-          <p className="font-semibold text-text-primary mb-1">What is a profile?</p>
+          <p className="font-semibold text-text-primary mb-1">{t('whatIsProfile')}</p>
           <p className="text-text-secondary">
-            A profile is a reusable YAML template for OLCRTC configuration. Based on it, a separate container is automatically created for each subscriber.
+            {t('profileDescription')}
           </p>
         </section>
         <section>
-          <p className="font-semibold text-text-primary mb-1">How to create a profile?</p>
+          <p className="font-semibold text-text-primary mb-1">{t('howToCreateProfileDesc')}</p>
           <ol className="list-decimal list-inside space-y-1 text-text-secondary">
             <li>
-              Enter the display name (e.g.,{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">Germany - VP8</code>).
+              {t('createProfileStep1', { example: 'Germany - VP8' })}
             </li>
             <li>
-              Enter a tag — a short unique identifier without the symbol{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">-</code> (e.g.,{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">de_vp8</code>).
+              {t('createProfileStep2', { symbol: '-', example: 'de_vp8' })}
             </li>
             <li>
-              Paste the YAML configuration into the field below and click <strong>Create Profile</strong>.
+              {t('createProfileStep3', { button: t('createProfileButton') })}
             </li>
           </ol>
         </section>
         <section>
-          <p className="font-semibold text-text-primary mb-1">Important settings</p>
+          <p className="font-semibold text-text-primary mb-1">{t('importantSettings')}</p>
           <ul className="space-y-1 text-text-secondary">
             <li>
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">tag</code> — a unique identifier;{" "}
-              <span className="text-warning">do not use</span> the symbol{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">-</code>, otherwise the traffic system will not be able to determine the container owner.
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">tag</code> — {t('tagWarning', { warning: t('doNotUse'), symbol: '-' })}
             </li>
             <li>
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">room.id</code> — for Jitsi, provide only the base URL of the server; the panel will add a random room name automatically.
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">room.id</code> — {t('roomIdHint')}
             </li>
             <li>
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">net.transport</code> — one of:{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">datachannel</code>,{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">vp8channel</code>,{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">seichannel</code>,{" "}
-              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">videochannel</code>.
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">net.transport</code> — {t('transportHint', { options: 'datachannel, vp8channel, seichannel, videochannel' })}
             </li>
           </ul>
         </section>
         <section className="bg-bg-tertiary rounded-lg px-3 py-2.5">
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Minimum example</p>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">{t('minimumExample')}</p>
           <pre
             className="text-xs font-mono text-text-secondary leading-relaxed whitespace-pre"
           >{`auth:
@@ -296,7 +290,7 @@ function ProfileHelpModal({ open, onClose }: { open: boolean; onClose: () => voi
         </section>
 
         <p className="text-xs text-text-muted">
-          Editing the profile stops all containers with this tag — they will be recreated on the next subscriber update.
+          {t('editingProfileNote')}
         </p>
       </div>
     </Modal>
@@ -304,6 +298,7 @@ function ProfileHelpModal({ open, onClose }: { open: boolean; onClose: () => voi
 }
 
 function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useLanguage()
   const [name, setName] = useState('')
   const [tag, setTag] = useState('')
   const [config, setConfig] = useState('')
@@ -340,7 +335,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
       onClose()
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      setError(err?.response?.data?.detail || 'Failed to create profile')
+      setError(err?.response?.data?.detail || t('failedToCreateProfile'))
     },
   })
 
@@ -358,13 +353,13 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
       <Modal
         open={open}
         onClose={() => { reset(); onClose() }}
-        title="Create Profile"
-        description="Add a new configuration profile"
+        title={t('createProfile')}
+        description={t('addNewProfile')}
         wide
         headerAction={
           <button
             onClick={() => setHelpOpen(true)}
-            title="Help"
+            title={t('help')}
             className="
               flex h-9 w-9 items-center justify-center
               rounded-md
@@ -385,12 +380,12 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
         <div className="space-y-4">
           {error && <FormError message={error} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Display name" />
-            <Input label="Tag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique_tag" error={tagResult?.valid === false ? tagResult.message : undefined} />
+            <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('displayName')} />
+            <Input label={t('tag')} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique_tag" error={tagResult?.valid === false ? tagResult.message : undefined} />
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">YAML Config</label>
+              <label className="text-xs font-medium text-text-secondary">{t('yamlConfig')}</label>
               {yamlResult && (
                 <span className={`text-xs font-medium flex items-center gap-1 ${
                   yamlResult.valid ? 'text-success' : 'text-warning'
@@ -400,7 +395,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
                   ) : (
                     <XCircleIcon className="w-3.5 h-3.5" />
                   )}
-                  {yamlResult.valid ? 'Valid config' : `${yamlResult.errors.length} issue${yamlResult.errors.length !== 1 ? 's' : ''}`}
+                  {yamlResult.valid ? t('validConfig') : t('nIssues', { n: yamlResult.errors.length })}
                 </span>
               )}
             </div>
@@ -408,7 +403,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
               value={config}
               onChange={(e) => setConfig(e.target.value)}
               onKeyDown={(e) => handleTextareaTab(e, config, setConfig)}
-              placeholder="Paste YAML configuration here..."
+              placeholder={t('pasteYamlHere')}
               rows={16}
               className="bg-bg-tertiary border border-border rounded-md px-3 py-2.5 text-sm text-text-primary leading-relaxed
                 placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30
@@ -419,7 +414,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
 
           {yamlResult && !yamlResult.valid && yamlResult.errors.length > 0 && (
             <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
-              <p className="text-xs font-semibold text-danger">Config validation errors:</p>
+              <p className="text-xs font-semibold text-danger">{t('configValidationErrors')}:</p>
               <ul className="space-y-1">
                 {yamlResult.errors.map((err, i) => (
                   <li key={i} className="text-xs text-danger flex gap-2">
@@ -433,7 +428,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
 
           {yamlResult && yamlResult.warnings.length > 0 && (
             <div className="bg-warning/5 border border-warning/15 rounded-lg px-3 py-2.5 space-y-1">
-              <p className="text-xs font-semibold text-warning">Warnings:</p>
+              <p className="text-xs font-semibold text-warning">{t('warnings')}:</p>
               <ul className="space-y-1">
                 {yamlResult.warnings.map((warn, i) => (
                   <li key={i} className="text-xs text-warning flex gap-2">
@@ -447,15 +442,15 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
           <div className="flex justify-between gap-2 pt-1">
             <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
               <RectangleStackIcon className="w-4 h-4" />
-              Profile examples
+              {t('profileExamples')}
             </Button>
 
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => { reset(); onClose() }}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>
-                Create Profile
+                {t('createProfileButton')}
               </Button>
             </div>
           </div>
@@ -472,6 +467,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
 }
 
 function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClose: () => void }) {
+  const { t } = useLanguage()
   const [name, setName] = useState('')
   const [config, setConfig] = useState('')
   const [error, setError] = useState('')
@@ -505,7 +501,7 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
       onClose()
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      setError(err?.response?.data?.detail || 'Failed to update profile')
+      setError(err?.response?.data?.detail || t('failedToUpdateProfile'))
     },
   })
 
@@ -516,13 +512,13 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
       <Modal
         open={!!profile}
         onClose={onClose}
-        title={`Edit: ${profile.name}`}
-        description={`Tag: ${profile.tag}`}
+        title={t('editProfile', { name: profile.name })}
+        description={t('editProfileDesc', { tag: profile.tag })}
         wide
         headerAction={
             <button
             onClick={() => setHelpOpen(true)}
-            title="Help"
+            title={t('help')}
             className="
               flex h-9 w-9 items-center justify-center
               rounded-md
@@ -543,9 +539,9 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
         <div className="space-y-4">
           {error && <FormError message={error} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} />
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text-secondary">Tag (read-only)</label>
+              <label className="text-xs font-medium text-text-secondary">{t('tagReadOnly')}</label>
               <div className="h-9 flex items-center bg-bg-primary border border-border rounded-md px-3 text-sm font-mono text-text-muted">
                 {profile.tag}
               </div>
@@ -553,7 +549,7 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">YAML Config</label>
+              <label className="text-xs font-medium text-text-secondary">{t('yamlConfig')}</label>
               {yamlResult ? (
                 <span className={`text-xs font-medium flex items-center gap-1 ${
                   yamlResult.valid ? 'text-success' : 'text-warning'
@@ -563,10 +559,10 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
                   ) : (
                     <XCircleIcon className="w-3.5 h-3.5" />
                   )}
-                  {yamlResult.valid ? 'Valid config' : `${yamlResult.errors.length} issue${yamlResult.errors.length !== 1 ? 's' : ''}`}
+                  {yamlResult.valid ? t('validConfig') : t('nIssues', { n: yamlResult.errors.length })}
                 </span>
               ) : (
-                <span className="text-xs text-text-muted tabular-nums">{config.length} chars</span>
+                <span className="text-xs text-text-muted tabular-nums">{t('nChars', { n: config.length })}</span>
               )}
             </div>
             <textarea
@@ -583,7 +579,7 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
 
           {yamlResult && !yamlResult.valid && yamlResult.errors.length > 0 && (
             <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
-              <p className="text-xs font-semibold text-danger">Config validation errors:</p>
+              <p className="text-xs font-semibold text-danger">{t('configValidationErrors')}:</p>
               <ul className="space-y-1">
                 {yamlResult.errors.map((err, i) => (
                   <li key={i} className="text-xs text-danger flex gap-2">
@@ -597,7 +593,7 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
 
           {yamlResult && yamlResult.warnings.length > 0 && (
             <div className="bg-warning/5 border border-warning/15 rounded-lg px-3 py-2.5 space-y-1">
-              <p className="text-xs font-semibold text-warning">Warnings:</p>
+              <p className="text-xs font-semibold text-warning">{t('warnings')}:</p>
               <ul className="space-y-1">
                 {yamlResult.warnings.map((warn, i) => (
                   <li key={i} className="text-xs text-warning flex gap-2">
@@ -611,12 +607,12 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
           <div className="flex justify-between gap-2 pt-1">
             <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
               <RectangleStackIcon className="w-4 h-4" />
-              Profile examples
+              {t('profileExamples')}
             </Button>
 
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => { onClose() }}>Cancel</Button>
-              <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>Save Changes</Button>
+              <Button variant="secondary" onClick={() => { onClose() }}>{t('cancel')}</Button>
+              <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>{t('saveChangesButton')}</Button>
             </div>
           </div>
         </div>
@@ -636,6 +632,7 @@ function ProfileExamplesModal({ open, onClose, onSelect }: {
   onClose: () => void
   onSelect: (yaml: string) => void
 }) {
+  const { t } = useLanguage()
   const [files, setFiles] = useState<{ name: string; download_url: string }[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -671,7 +668,7 @@ function ProfileExamplesModal({ open, onClose, onSelect }: {
         setLoading(false)
       })
       .catch((err) => {
-        setError((err as Error).message || 'Failed to load examples')
+        setError((err as Error).message || t('failedToLoadExamples'))
         setLoading(false)
       })
   }, [open])
@@ -687,7 +684,7 @@ function ProfileExamplesModal({ open, onClose, onSelect }: {
     setError(null)
     try {
       const res = await fetch(file.download_url)
-      if (!res.ok) throw new Error(`Failed to load ${file.name}`)
+      if (!res.ok) throw new Error(t('failedToLoadFile', { filename: file.name }))
       const yaml = await res.text()
 
       const cache = getExamplesCache()
@@ -698,19 +695,19 @@ function ProfileExamplesModal({ open, onClose, onSelect }: {
 
       onSelect(yaml)
     } catch (err) {
-      setError((err as Error).message || `Failed to load ${file.name}`)
+      setError((err as Error).message || t('failedToLoadFile', { filename: file.name }))
     } finally {
       setLoadFile(null)
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Profile Examples">
+    <Modal open={open} onClose={onClose} title={t('profileExamplesTitle')}>
       <div className="space-y-2 min-h-[200px]">
         {loading && (
           <div className="flex flex-col items-center py-12">
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
-            <p className="text-sm text-text-muted">Loading examples...</p>
+            <p className="text-sm text-text-muted">{t('loadingExamples')}</p>
           </div>
         )}
 
@@ -719,7 +716,7 @@ function ProfileExamplesModal({ open, onClose, onSelect }: {
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-danger/10 text-danger mb-3">
               <ExclamationTriangleIcon className="w-5 h-5" />
             </div>
-            <p className="text-sm text-text-primary font-medium">Failed to load examples</p>
+            <p className="text-sm text-text-primary font-medium">{t('failedToLoadExamples')}</p>
             <p className="text-xs text-text-muted mt-1">{error}</p>
           </div>
         )}
@@ -729,7 +726,7 @@ function ProfileExamplesModal({ open, onClose, onSelect }: {
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-bg-tertiary text-text-muted mb-3">
               <DocumentTextIcon className="w-5 h-5" />
             </div>
-            <p className="text-sm text-text-secondary">No example files found</p>
+            <p className="text-sm text-text-secondary">{t('noExampleFilesFound')}</p>
           </div>
         )}
 

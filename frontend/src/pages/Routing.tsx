@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { routingApi, type GeotagsResponse } from '../api/routing'
 import { validateRoutingJson, stripRoutingFields, type RoutingValidationResult } from '../utils/routingValidator'
 import { useDebounce } from '../utils/useDebounce'
+import { useLanguage } from '../i18n/useLanguage'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -59,6 +60,7 @@ function handleTextareaTab(
 }
 
 function ValidationStatus({ result }: { result: RoutingValidationResult | null }) {
+  const { t } = useLanguage()
   if (!result) return null
 
   const hasWarnings = result.warnings.length > 0
@@ -77,19 +79,20 @@ function ValidationStatus({ result }: { result: RoutingValidationResult | null }
       ) : (
         <XCircleIcon className="w-3.5 h-3.5" />
       )}
-      {result.valid ? 'Valid routing config' : 'Invalid routing config'}
+      {result.valid ? t('validRoutingConfig') : t('invalidRoutingConfig')}
     </span>
   )
 }
 
 function ValidationErrors({ result }: { result: RoutingValidationResult | null }) {
+  const { t } = useLanguage()
   if (!result) return null
 
   return (
     <div className="space-y-2">
       {result.errors.length > 0 && (
         <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
-          <p className="text-xs font-semibold text-danger">Validation errors:</p>
+          <p className="text-xs font-semibold text-danger">{t('validationErrors')}:</p>
           <ul className="space-y-1">
             {result.errors.map((err, i) => (
               <li key={i} className="text-xs text-danger flex gap-2">
@@ -103,7 +106,7 @@ function ValidationErrors({ result }: { result: RoutingValidationResult | null }
 
       {result.warnings.length > 0 && (
         <div className="bg-warning/5 border border-warning/15 rounded-lg px-3 py-2.5 space-y-1">
-          <p className="text-xs font-semibold text-warning">Warnings:</p>
+          <p className="text-xs font-semibold text-warning">{t('warnings')}:</p>
           <ul className="space-y-1">
             {result.warnings.map((warn, i) => (
               <li key={i} className="text-xs text-warning flex gap-2">
@@ -119,6 +122,7 @@ function ValidationErrors({ result }: { result: RoutingValidationResult | null }
 }
 
 export default function Routing() {
+  const { t } = useLanguage()
   const { toasts, dismiss, success, error: toastError } = useToasts()
   const queryClient = useQueryClient()
 
@@ -165,11 +169,11 @@ export default function Routing() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['routing-enabled'] })
       queryClient.invalidateQueries({ queryKey: ['routing-config'] })
-      success('Routing enabled')
+      success(t('routingEnabled'))
       setConfirmDisable(false)
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      toastError(err?.response?.data?.detail || 'Failed to enable routing')
+      toastError(err?.response?.data?.detail || t('failedToEnableRouting'))
     },
   })
 
@@ -177,10 +181,10 @@ export default function Routing() {
     mutationFn: (xrayJson: string) => routingApi.update(xrayJson),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['routing-config'] })
-      success('Routing config saved')
+      success(t('routingConfigSaved'))
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      toastError(err?.response?.data?.detail || 'Failed to save routing config')
+      toastError(err?.response?.data?.detail || t('failedToSaveRoutingConfig'))
     },
   })
 
@@ -189,11 +193,11 @@ export default function Routing() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['routing-enabled'] })
       queryClient.invalidateQueries({ queryKey: ['routing-config'] })
-      success('Routing disabled')
+      success(t('routingDisabled'))
       setConfirmDisable(false)
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      toastError(err?.response?.data?.detail || 'Failed to disable routing')
+      toastError(err?.response?.data?.detail || t('failedToDisableRouting'))
     },
   })
 
@@ -278,9 +282,9 @@ export default function Routing() {
         open={confirmDisable}
         onClose={() => setConfirmDisable(false)}
         onConfirm={handleConfirmDisable}
-        title="Disable routing?"
-        message="Current routing configuration will stop being used."
-        confirmLabel="Disable"
+        title={t('disableRoutingTitle')}
+        message={t('disableRoutingMessage')}
+        confirmLabel={t('disable')}
         loading={deleteMutation.isPending}
       />
 
@@ -290,14 +294,15 @@ export default function Routing() {
 }
 
 function EnableSection({ onEnable, isConfiguring }: { onEnable: () => void; isConfiguring: boolean }) {
+  const { t } = useLanguage()
   return (
     <Card>
-      <CardHeader title="Routing" />
+      <CardHeader title={t('routing')} />
       <div className="px-5 py-4 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-text-primary">Enable routing</p>
-            <p className="text-xs text-text-muted mt-0.5">Experimental feature. Routing may be unstable.</p>
+            <p className="text-sm font-medium text-text-primary">{t('enableRouting')}</p>
+            <p className="text-xs text-text-muted mt-0.5">{t('experimentalWarning')}</p>
           </div>
           <button
             onClick={onEnable}
@@ -324,6 +329,7 @@ function GeotagsSearchModal({ open, onClose, geotags }: {
   onClose: () => void
   geotags?: GeotagsResponse
 }) {
+  const { t } = useLanguage()
   const [tab, setTab] = useState<'geoip' | 'geosite'>('geoip')
   const [search, setSearch] = useState('')
   const [copiedTag, setCopiedTag] = useState<string | null>(null)
@@ -334,7 +340,7 @@ function GeotagsSearchModal({ open, onClose, geotags }: {
     const list = tab === 'geoip' ? geotags.geoip : geotags.geosite
     if (!debouncedSearch.trim()) return list
     const q = debouncedSearch.toLowerCase()
-    return list.filter((t) => t.includes(q))
+    return list.filter((tag) => tag.includes(q))
   }, [geotags, tab, debouncedSearch])
 
   useEffect(() => {
@@ -356,17 +362,17 @@ function GeotagsSearchModal({ open, onClose, geotags }: {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Search GeoIP / GeoSite">
+    <Modal open={open} onClose={onClose} title={t('searchGeoSite')}>
       <div className="space-y-3">
         <div className="flex rounded-lg bg-bg-tertiary p-0.5">
-          {(['geoip', 'geosite'] as const).map((t) => (
+          {(['geoip', 'geosite'] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors cursor-pointer
-                ${tab === t ? 'bg-bg-secondary text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                ${tab === tabKey ? 'bg-bg-secondary text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
             >
-              {t.toUpperCase()}
+              {tabKey === 'geoip' ? t('geoip') : t('geosite')}
             </button>
           ))}
         </div>
@@ -378,19 +384,19 @@ function GeotagsSearchModal({ open, onClose, geotags }: {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${tab} tags...`}
+            placeholder={t('searchTagsPlaceholder', { tab: tab === 'geoip' ? t('geoip') : t('geosite') })}
             className="w-full h-9 bg-bg-tertiary border border-border rounded-md pl-8 pr-3 text-sm text-text-primary
               placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
         </div>
 
         {!geotags && (
-          <p className="text-xs text-text-muted text-center py-6">Loading available tags...</p>
+          <p className="text-xs text-text-muted text-center py-6">{t('loadingAvailableTags')}</p>
         )}
 
         {geotags && tags.length === 0 && (
           <p className="text-xs text-text-muted text-center py-6">
-            {debouncedSearch ? 'No tags match your search' : 'No tags available'}
+            {debouncedSearch ? t('noTagsMatchSearch') : t('noTagsAvailable')}
           </p>
         )}
 
@@ -405,9 +411,9 @@ function GeotagsSearchModal({ open, onClose, geotags }: {
               >
                 <span className="text-text-primary">{tab}:{code}</span>
                 {copiedTag === code ? (
-                  <span className="text-xs text-success font-sans">Copied!</span>
+                  <span className="text-xs text-success font-sans">{t('copiedExclamation')}</span>
                 ) : (
-                  <span className="text-xs text-text-muted font-sans">Click to copy</span>
+                  <span className="text-xs text-text-muted font-sans">{t('clickToCopy')}</span>
                 )}
               </button>
             ))}
@@ -429,6 +435,7 @@ function ConfiguringSection({
   isSaving: boolean
   onSave: () => void
 }) {
+  const { t } = useLanguage()
   const [helpOpen, setHelpOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
   const [geotagsOpen, setGeotagsOpen] = useState(false)
@@ -437,11 +444,11 @@ function ConfiguringSection({
     <>
       <Card>
         <CardHeader
-          title="Xray routing config"
+          title={t('xrayRoutingConfig')}
           action={
             <button
               onClick={() => setHelpOpen(true)}
-              title="Help"
+              title={t('help')}
               className="
                 flex h-9 w-9 items-center justify-center
                 rounded-md
@@ -462,14 +469,14 @@ function ConfiguringSection({
         <div className="px-5 py-4 space-y-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">JSON Config</label>
+              <label className="text-xs font-medium text-text-secondary">{t('jsonConfig')}</label>
               <ValidationStatus result={validation} />
             </div>
             <textarea
               value={config}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={(e) => handleTextareaTab(e, config, onChange)}
-              placeholder={`Paste xray-core routing config here...\n\n{\n  "routing": {\n    "rules": [...]\n  },\n  "outbounds": [...]\n}`}
+              placeholder={t('pasteRoutingHere')}
               rows={20}
               className="bg-bg-tertiary border border-border rounded-md px-3 py-2.5 text-sm text-text-primary leading-relaxed
                 placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30
@@ -484,16 +491,16 @@ function ConfiguringSection({
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
                 <DocumentTextIcon className="w-4 h-4" />
-                Examples
+                {t('examples')}
               </Button>
               <Button variant="secondary" onClick={() => setGeotagsOpen(true)}>
                 <MagnifyingGlassIcon className="w-4 h-4" />
-                Search Tags
+                {t('searchTags')}
               </Button>
             </div>
 
             <Button loading={isSaving} disabled={!canSave} onClick={onSave}>
-              Save & Enable
+              {t('saveAndEnable')}
             </Button>
           </div>
         </div>
@@ -526,6 +533,7 @@ function EditorSection({
   onSave: () => void
   onDisable: () => void
 }) {
+  const { t } = useLanguage()
   const [helpOpen, setHelpOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
   const [geotagsOpen, setGeotagsOpen] = useState(false)
@@ -534,12 +542,12 @@ function EditorSection({
     <>
       <Card>
         <CardHeader
-          title="Routing"
+          title={t('routing')}
           action={
             <div className="flex items-center gap-3">
               <button
               onClick={() => setHelpOpen(true)}
-              title="Help"
+              title={t('help')}
               className="
                 flex h-9 w-9 items-center justify-center
                 rounded-md
@@ -556,7 +564,7 @@ function EditorSection({
               <QuestionMarkCircleIcon className="h-5 w-5" />
             </button>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-text-muted">Disable routing</span>
+                <span className="text-xs text-text-muted">{t('disableRouting')}</span>
                 <button
                   onClick={onDisable}
                   className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
@@ -572,14 +580,14 @@ function EditorSection({
         <div className="px-5 py-4 space-y-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-text-secondary">JSON Config</label>
+              <label className="text-xs font-medium text-text-secondary">{t('jsonConfig')}</label>
               <ValidationStatus result={validation} />
             </div>
             <textarea
               value={config}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={(e) => handleTextareaTab(e, config, onChange)}
-              placeholder="Paste xray-core routing config here..."
+              placeholder={t('pasteRoutingHere')}
               rows={20}
               className="bg-bg-tertiary border border-border rounded-md px-3 py-2.5 text-sm text-text-primary leading-relaxed
                 placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30
@@ -594,16 +602,16 @@ function EditorSection({
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
                 <DocumentTextIcon className="w-4 h-4" />
-                Examples
+                {t('examples')}
               </Button>
               <Button variant="secondary" onClick={() => setGeotagsOpen(true)}>
                 <MagnifyingGlassIcon className="w-4 h-4" />
-                Search Tags
+                {t('searchTags')}
               </Button>
             </div>
 
             <Button loading={isSaving} disabled={!canSave} onClick={onSave}>
-              Save
+              {t('save')}
             </Button>
           </div>
         </div>
@@ -625,26 +633,26 @@ function EditorSection({
 }
 
 function RoutingHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useLanguage()
   return (
-    <Modal open={open} onClose={onClose} title="Routing Help">
+    <Modal open={open} onClose={onClose} title={t('routingHelpTitle')}>
       <div className="space-y-4 text-sm text-text-primary">
         <section>
-          <p className="font-semibold text-text-primary mb-1">What is routing?</p>
-          <p className="text-text-secondary">Routing lets you control how traffic from OLCRTC containers is forwarded. You can route traffic through external proxies, bypass certain destinations, or block unwanted connections.</p>
+          <p className="font-semibold text-text-primary mb-1">{t('whatIsRouting')}</p>
+          <p className="text-text-secondary">{t('routingDescription')}</p>
         </section>
         <section>
-          <p className="font-semibold text-text-primary mb-1">Required structure</p>
+          <p className="font-semibold text-text-primary mb-1">{t('requiredStructure')}</p>
           <ul className="space-y-1 text-text-secondary">
-            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">routing.rules</code> — array of routing rules (at least one required)</li>
-            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">outbounds</code> — your outbound proxies / direct / block</li>
+            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">routing.rules</code> — {t('routingStructureRules')}</li>
+            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">outbounds</code> — {t('routingStructureOutbounds')}</li>
           </ul>
         </section>
         <section>
-          <p className="font-semibold text-text-primary mb-1">Note</p>
-          <p className="text-text-secondary">If you include <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">dns</code> or <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">inbounds</code> in your config, they will be ignored. OLCWave generates these automatically.</p>
+          <p className="text-text-secondary">{t('routingNote', { dns: 'dns', inbounds: 'inbounds' })}</p>
         </section>
         <section className="bg-bg-tertiary rounded-lg px-3 py-2.5">
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Minimal example</p>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">{t('minimalExample')}</p>
           <pre className="text-xs font-mono text-text-secondary leading-relaxed whitespace-pre">{`{
   "routing": {
     "rules": [
@@ -670,6 +678,7 @@ function RoutingExamplesModal({ open, onClose, onSelect }: {
   onClose: () => void
   onSelect: (json: string) => void
 }) {
+  const { t } = useLanguage()
   const [files, setFiles] = useState<{ name: string; download_url: string }[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -705,7 +714,7 @@ function RoutingExamplesModal({ open, onClose, onSelect }: {
         setLoading(false)
       })
       .catch((err) => {
-        setError((err as Error).message || 'Failed to load examples')
+        setError((err as Error).message || t('failedToLoadExamples'))
         setLoading(false)
       })
   }, [open])
@@ -721,7 +730,7 @@ function RoutingExamplesModal({ open, onClose, onSelect }: {
     setError(null)
     try {
       const res = await fetch(file.download_url)
-      if (!res.ok) throw new Error(`Failed to load ${file.name}`)
+      if (!res.ok) throw new Error(t('failedToLoadFile', { filename: file.name }))
       const json = await res.text()
 
       const cache = getExamplesCache()
@@ -732,19 +741,19 @@ function RoutingExamplesModal({ open, onClose, onSelect }: {
 
       onSelect(json)
     } catch (err) {
-      setError((err as Error).message || `Failed to load ${file.name}`)
+      setError((err as Error).message || t('failedToLoadFile', { filename: file.name }))
     } finally {
       setLoadFile(null)
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Routing Examples">
+    <Modal open={open} onClose={onClose} title={t('routingExamplesTitle')}>
       <div className="space-y-2 min-h-[200px]">
         {loading && (
           <div className="flex flex-col items-center py-12">
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin mb-3" />
-            <p className="text-sm text-text-muted">Loading examples...</p>
+            <p className="text-sm text-text-muted">{t('loadingExamples')}</p>
           </div>
         )}
 
@@ -753,7 +762,7 @@ function RoutingExamplesModal({ open, onClose, onSelect }: {
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-danger/10 text-danger mb-3">
               <ExclamationTriangleIcon className="w-5 h-5" />
             </div>
-            <p className="text-sm text-text-primary font-medium">Failed to load examples</p>
+            <p className="text-sm text-text-primary font-medium">{t('failedToLoadExamples')}</p>
             <p className="text-xs text-text-muted mt-1">{error}</p>
           </div>
         )}
@@ -763,7 +772,7 @@ function RoutingExamplesModal({ open, onClose, onSelect }: {
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-bg-tertiary text-text-muted mb-3">
               <DocumentTextIcon className="w-5 h-5" />
             </div>
-            <p className="text-sm text-text-secondary">No example files found</p>
+            <p className="text-sm text-text-secondary">{t('noExampleFilesFound')}</p>
           </div>
         )}
 
