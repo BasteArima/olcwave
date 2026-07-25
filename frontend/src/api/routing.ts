@@ -1,5 +1,10 @@
 import api from './client'
 
+export interface GeotagsResponse {
+  geoip: string[]
+  geosite: string[]
+}
+
 export const routingApi = {
   isEnabled: () =>
     api.get<boolean>('/routing/enabled'),
@@ -18,4 +23,7 @@ export const routingApi = {
 
   logs: () =>
     api.get<string>('/routing/logs'),
+
+  getGeotags: () =>
+    api.get<GeotagsResponse>('/routing/geotags'),
 }

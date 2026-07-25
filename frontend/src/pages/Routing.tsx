@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { routingApi } from '../api/routing'
+import { routingApi, type GeotagsResponse } from '../api/routing'
 import { validateRoutingJson, stripRoutingFields, type RoutingValidationResult } from '../utils/routingValidator'
+import { useDebounce } from '../utils/useDebounce'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -14,6 +15,7 @@ import {
   ExclamationTriangleIcon,
   DocumentTextIcon,
   QuestionMarkCircleIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline'
 
 const EXAMPLES_CACHE_KEY = 'routing-examples-cache'
@@ -134,6 +136,12 @@ export default function Routing() {
     enabled: enabled === true,
   })
 
+  const { data: geotags } = useQuery({
+    queryKey: ['routing-geotags'],
+    queryFn: () => routingApi.getGeotags().then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  })
+
   const [editorConfig, setEditorConfig] = useState('')
   const [validation, setValidation] = useState<RoutingValidationResult | null>(null)
 
@@ -146,11 +154,11 @@ export default function Routing() {
 
   useEffect(() => {
     if (editorConfig.trim()) {
-      setValidation(validateRoutingJson(editorConfig))
+      setValidation(validateRoutingJson(editorConfig, geotags))
     } else {
       setValidation(null)
     }
-  }, [editorConfig])
+  }, [editorConfig, geotags])
 
   const createMutation = useMutation({
     mutationFn: (xrayJson: string) => routingApi.create(xrayJson),
@@ -196,6 +204,11 @@ export default function Routing() {
 
   const handleSave = () => {
     if (!canSave) return
+    const currentValidation = validateRoutingJson(editorConfig, geotags)
+    if (!currentValidation.valid) {
+      setValidation(currentValidation)
+      return
+    }
     if (isFirstTime) {
       createMutation.mutate(editorConfig)
     } else {
@@ -239,6 +252,7 @@ export default function Routing() {
           config={editorConfig}
           onChange={setEditorConfig}
           validation={validation}
+          geotags={geotags}
           canSave={canSave}
           isSaving={isSaving}
           onSave={handleSave}
@@ -253,6 +267,7 @@ export default function Routing() {
           config={editorConfig}
           onChange={setEditorConfig}
           validation={validation}
+          geotags={geotags}
           canSave={canSave}
           isSaving={isSaving}
           onSave={handleSave}
@@ -304,18 +319,119 @@ function EnableSection({ onEnable, isConfiguring }: { onEnable: () => void; isCo
   )
 }
 
+function GeotagsSearchModal({ open, onClose, geotags }: {
+  open: boolean
+  onClose: () => void
+  geotags?: GeotagsResponse
+}) {
+  const [tab, setTab] = useState<'geoip' | 'geosite'>('geoip')
+  const [search, setSearch] = useState('')
+  const [copiedTag, setCopiedTag] = useState<string | null>(null)
+  const debouncedSearch = useDebounce(search, 150)
+
+  const tags = useMemo(() => {
+    if (!geotags) return []
+    const list = tab === 'geoip' ? geotags.geoip : geotags.geosite
+    if (!debouncedSearch.trim()) return list
+    const q = debouncedSearch.toLowerCase()
+    return list.filter((t) => t.includes(q))
+  }, [geotags, tab, debouncedSearch])
+
+  useEffect(() => {
+    if (open) {
+      setSearch('')
+      setCopiedTag(null)
+    }
+  }, [open])
+
+  const handleCopy = async (code: string) => {
+    const value = `${tab}:${code}`
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopiedTag(code)
+      setTimeout(() => setCopiedTag(null), 1200)
+    } catch {
+      /* clipboard not available */
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Search GeoIP / GeoSite">
+      <div className="space-y-3">
+        <div className="flex rounded-lg bg-bg-tertiary p-0.5">
+          {(['geoip', 'geosite'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors cursor-pointer
+                ${tab === t ? 'bg-bg-secondary text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+            >
+              {t.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+          <input
+            autoFocus
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Search ${tab} tags...`}
+            className="w-full h-9 bg-bg-tertiary border border-border rounded-md pl-8 pr-3 text-sm text-text-primary
+              placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+        </div>
+
+        {!geotags && (
+          <p className="text-xs text-text-muted text-center py-6">Loading available tags...</p>
+        )}
+
+        {geotags && tags.length === 0 && (
+          <p className="text-xs text-text-muted text-center py-6">
+            {debouncedSearch ? 'No tags match your search' : 'No tags available'}
+          </p>
+        )}
+
+        {geotags && tags.length > 0 && (
+          <div className="max-h-72 overflow-y-auto -mx-1 space-y-0.5">
+            {tags.map((code) => (
+              <button
+                key={code}
+                onClick={() => handleCopy(code)}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm font-mono
+                  hover:bg-bg-hover transition-colors cursor-pointer flex items-center justify-between gap-3"
+              >
+                <span className="text-text-primary">{tab}:{code}</span>
+                {copiedTag === code ? (
+                  <span className="text-xs text-success font-sans">Copied!</span>
+                ) : (
+                  <span className="text-xs text-text-muted font-sans">Click to copy</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 function ConfiguringSection({
-  config, onChange, validation, canSave, isSaving, onSave,
+  config, onChange, validation, geotags, canSave, isSaving, onSave,
 }: {
   config: string
   onChange: (v: string) => void
   validation: RoutingValidationResult | null
+  geotags?: GeotagsResponse
   canSave: boolean
   isSaving: boolean
   onSave: () => void
 }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
+  const [geotagsOpen, setGeotagsOpen] = useState(false)
 
   return (
     <>
@@ -365,10 +481,16 @@ function ConfiguringSection({
           <ValidationErrors result={validation} />
 
           <div className="flex justify-between gap-2 pt-1">
-            <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
-              <DocumentTextIcon className="w-4 h-4" />
-              Examples
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
+                <DocumentTextIcon className="w-4 h-4" />
+                Examples
+              </Button>
+              <Button variant="secondary" onClick={() => setGeotagsOpen(true)}>
+                <MagnifyingGlassIcon className="w-4 h-4" />
+                Search Tags
+              </Button>
+            </div>
 
             <Button loading={isSaving} disabled={!canSave} onClick={onSave}>
               Save & Enable
@@ -383,16 +505,22 @@ function ConfiguringSection({
         onClose={() => setExamplesOpen(false)}
         onSelect={(json) => { onChange(json); setExamplesOpen(false) }}
       />
+      <GeotagsSearchModal
+        open={geotagsOpen}
+        onClose={() => setGeotagsOpen(false)}
+        geotags={geotags}
+      />
     </>
   )
 }
 
 function EditorSection({
-  config, onChange, validation, canSave, isSaving, onSave, onDisable,
+  config, onChange, validation, geotags, canSave, isSaving, onSave, onDisable,
 }: {
   config: string
   onChange: (v: string) => void
   validation: RoutingValidationResult | null
+  geotags?: GeotagsResponse
   canSave: boolean
   isSaving: boolean
   onSave: () => void
@@ -400,6 +528,7 @@ function EditorSection({
 }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
+  const [geotagsOpen, setGeotagsOpen] = useState(false)
 
   return (
     <>
@@ -409,12 +538,23 @@ function EditorSection({
           action={
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setHelpOpen(true)}
-                className="flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success hover:bg-success/25 transition-colors cursor-pointer"
-                title="Help"
-              >
-                <QuestionMarkCircleIcon className="w-5 h-5" />
-              </button>
+              onClick={() => setHelpOpen(true)}
+              title="Help"
+              className="
+                flex h-9 w-9 items-center justify-center
+                rounded-md
+                border border-[rgba(130,201,30,0.3)]
+                bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
+                text-lime-400
+                transition-colors duration-150
+                hover:bg-[rgba(169,227,75,0.1)]
+                active:scale-95
+                focus:outline-none
+                cursor-pointer
+              "
+            >
+              <QuestionMarkCircleIcon className="h-5 w-5" />
+            </button>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-text-muted">Disable routing</span>
                 <button
@@ -451,10 +591,16 @@ function EditorSection({
           <ValidationErrors result={validation} />
 
           <div className="flex justify-between gap-2 pt-1">
-            <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
-              <DocumentTextIcon className="w-4 h-4" />
-              Examples
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
+                <DocumentTextIcon className="w-4 h-4" />
+                Examples
+              </Button>
+              <Button variant="secondary" onClick={() => setGeotagsOpen(true)}>
+                <MagnifyingGlassIcon className="w-4 h-4" />
+                Search Tags
+              </Button>
+            </div>
 
             <Button loading={isSaving} disabled={!canSave} onClick={onSave}>
               Save
@@ -468,6 +614,11 @@ function EditorSection({
         open={examplesOpen}
         onClose={() => setExamplesOpen(false)}
         onSelect={(json) => { onChange(json); setExamplesOpen(false) }}
+      />
+      <GeotagsSearchModal
+        open={geotagsOpen}
+        onClose={() => setGeotagsOpen(false)}
+        geotags={geotags}
       />
     </>
   )
