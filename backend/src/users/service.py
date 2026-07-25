@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 
 from settings.service import SettingsService
@@ -76,10 +77,14 @@ class Users:
         rw_users = await getAllUsers()
         db_users = await Users.get_all()
 
-        rw_map = {}
-        for u in rw_users.users:
-            if await isUserValid(u.short_uuid):
-                rw_map[u.short_uuid] = u
+        valid_rw_users = await asyncio.gather(
+            *(isUserValid(u.short_uuid) for u in rw_users.users)
+        )
+        rw_map = {
+            u.short_uuid: u
+            for u, valid in zip(rw_users.users, valid_rw_users)
+            if valid
+        }
 
         db_map = {u.short_uuid: u for u in db_users}
 
