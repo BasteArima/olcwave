@@ -34,3 +34,7 @@ async def delete(_admin: dict = Depends(get_current_admin)):
 @router.get("/logs")
 async def logs(_admin: dict = Depends(get_current_admin)):
     return XrayCore.logs()
+
+@router.get("/geotags")
+async def get_geotags(_admin: dict = Depends(get_current_admin)):
+    return Routing.get_geotags()

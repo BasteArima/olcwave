@@ -45,3 +45,23 @@ class XrayCore:
     @staticmethod
     def get() -> Container:
         return client.containers.get("olcwave-xraycore")
+
+    @staticmethod
+    def get_geoip() -> bytes:
+        container = client.containers.get("olcwave-xraycore")
+        exit_code, data = container.exec_run("cat /app/geoip.dat")
+
+        if exit_code != 0:
+            raise RuntimeError("Failed to read geoip.dat")
+
+        return data
+
+    @staticmethod
+    def get_geosite() -> bytes:
+        container = client.containers.get("olcwave-xraycore")
+        exit_code, data = container.exec_run("cat /app/geosite.dat")
+
+        if exit_code != 0:
+            raise RuntimeError("Failed to read geosite.dat")
+
+        return data

@@ -8,6 +8,7 @@ from settings.service import SettingsService
 from xray_core.sdk import XrayCore
 from database import async_session_factory
 from routing.db import RoutingDB
+from xray_core.geodata.geodat_pb2 import GeoSiteList, GeoIPList
 
 class Routing:
     @staticmethod
@@ -73,9 +74,6 @@ class Routing:
         async with async_session_factory() as db:  
             _= await RoutingDB.update(db, xray_json) 
 
-        settings = SettingsService.get()
-        await SettingsService.set(settings)
-
         XrayCore.run(xray_json)
 
         for container in Containers.all():
@@ -99,3 +97,19 @@ class Routing:
 
         for container in Containers.all():
             Containers.restart(container.name)
+
+    @staticmethod
+    async def get_geotags():
+        geoip_data = XrayCore.get_geoip()
+        geosite_data = XrayCore.get_geosite()
+        
+        geoip = GeoIPList()
+        geosite = GeoSiteList()
+
+        geoip.ParseFromString(geoip_data)
+        geosite.ParseFromString(geosite_data)
+
+        return {
+            "geoip": [x.code.lower() for x in geoip.entry],
+            "geosite": [x.code.lower() for x in geosite.entry]
+        }
