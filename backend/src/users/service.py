@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from settings.service import SettingsService
-from rw.sdk import getAllUsers
+from rw.sdk import getAllUsers, isUserValid
 from database import async_session_factory
 from users.db import UserDB
 from users.schemas import UserSchema, TrafficInfoSchema
@@ -76,7 +76,11 @@ class Users:
         rw_users = await getAllUsers()
         db_users = await Users.get_all()
 
-        rw_map = {u.short_uuid: u for u in rw_users.users}  # pyright: ignore[reportAttributeAccessIssue]
+        rw_map = {}
+        for u in rw_users.users:
+            if await isUserValid(u.short_uuid):
+                rw_map[u.short_uuid] = u
+
         db_map = {u.short_uuid: u for u in db_users}
 
         created = 0

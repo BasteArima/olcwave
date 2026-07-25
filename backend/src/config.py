@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_EXPIRE_MINUTES: int = 1440
 
+    RW_SQUAD_NAME: str = ""
+
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
     model_config = SettingsConfigDict(env_file=".env")  # pyright: ignore[reportUnannotatedClassAttribute]
