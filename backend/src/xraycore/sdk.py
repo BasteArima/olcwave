@@ -24,7 +24,10 @@ class XrayCore:
             environment={
                 "CONFIG": xray_json,
             },
-            ports={"10808/tcp": 10808, "10808/udp": 10808}
+            ports={
+                "10808/tcp": ("127.0.0.1", 10808),
+                "10808/udp": ("127.0.0.1", 10808),
+            }
         )
 
     @staticmethod
