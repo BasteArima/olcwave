@@ -237,39 +237,67 @@ function FormError({ message }: { message: string }) {
 
 function ProfileHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <Modal open={open} onClose={onClose} title="Как создать профиль">
+    <Modal open={open} onClose={onClose} title="How to create a profile">
       <div className="space-y-4 text-sm text-text-primary">
         <section>
-          <p className="font-semibold text-text-primary mb-1">Что такое профиль?</p>
-          <p className="text-text-secondary">Профиль - переиспользуемый YAML-шаблон конфигурации OLCRTC. На его основе для каждого подписчика автоматически создаётся отдельный контейнер.</p>
+          <p className="font-semibold text-text-primary mb-1">What is a profile?</p>
+          <p className="text-text-secondary">
+            A profile is a reusable YAML template for OLCRTC configuration. Based on it, a separate container is automatically created for each subscriber.
+          </p>
         </section>
         <section>
-          <p className="font-semibold text-text-primary mb-1">Как создать профиль?</p>
+          <p className="font-semibold text-text-primary mb-1">How to create a profile?</p>
           <ol className="list-decimal list-inside space-y-1 text-text-secondary">
-            <li>Введите отображаемое имя (например, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">Germany - VP8</code>).</li>
-            <li>Введите тег - короткий уникальный идентификатор без символа <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">-</code> (например, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">de_vp8</code>).</li>
-            <li>Вставьте YAML-конфигурацию в поле ниже и нажмите <strong>Create Profile</strong>.</li>
+            <li>
+              Enter the display name (e.g.,{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">Germany - VP8</code>).
+            </li>
+            <li>
+              Enter a tag — a short unique identifier without the symbol{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">-</code> (e.g.,{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">de_vp8</code>).
+            </li>
+            <li>
+              Paste the YAML configuration into the field below and click <strong>Create Profile</strong>.
+            </li>
           </ol>
         </section>
         <section>
-          <p className="font-semibold text-text-primary mb-1">Важные параметры</p>
+          <p className="font-semibold text-text-primary mb-1">Important settings</p>
           <ul className="space-y-1 text-text-secondary">
-            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">tag</code> - уникальный идентификатор; <span className="text-warning">не используйте</span> символ <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">-</code>, иначе система трафика не сможет определить владельца контейнера.</li>
-            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">room.id</code> - для Jitsi укажите только базовый URL сервера; панель добавит случайное имя комнаты автоматически.</li>
-            <li><code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">net.transport</code> - один из: <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">datachannel</code>, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">vp8channel</code>, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">seichannel</code>, <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">videochannel</code>.</li>
+            <li>
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">tag</code> — a unique identifier;{" "}
+              <span className="text-warning">do not use</span> the symbol{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">-</code>, otherwise the traffic system will not be able to determine the container owner.
+            </li>
+            <li>
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">room.id</code> — for Jitsi, provide only the base URL of the server; the panel will add a random room name automatically.
+            </li>
+            <li>
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">net.transport</code> — one of:{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">datachannel</code>,{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">vp8channel</code>,{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">seichannel</code>,{" "}
+              <code className="text-xs font-mono text-accent bg-accent/10 px-1 rounded">videochannel</code>.
+            </li>
           </ul>
         </section>
         <section className="bg-bg-tertiary rounded-lg px-3 py-2.5">
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Минимальный пример</p>
-          <pre className="text-xs font-mono text-text-secondary leading-relaxed whitespace-pre">{`auth:
-  provider: jitsi
-room:
-  id: "https://jitsi.example.org"
-net:
-  transport: datachannel
-  dns: "8.8.8.8:53"`}</pre>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Minimum example</p>
+          <pre
+            className="text-xs font-mono text-text-secondary leading-relaxed whitespace-pre"
+          >{`auth:
+      provider: jitsi
+    room:
+      id: "https://jitsi.example.org"
+    net:
+      transport: datachannel
+      dns: "8.8.8.8:53"`}</pre>
         </section>
-        <p className="text-xs text-text-muted">Редактирование профиля останавливает все контейнеры с этим тегом - они пересоздадутся при следующем обновлении подписки.</p>
+
+        <p className="text-xs text-text-muted">
+          Editing the profile stops all containers with this tag — they will be recreated on the next subscriber update.
+        </p>
       </div>
     </Modal>
   )
@@ -448,6 +476,7 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
   const [config, setConfig] = useState('')
   const [error, setError] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
+  const [examplesOpen, setExamplesOpen] = useState(false)
   const [yamlResult, setYamlResult] = useState<YamlValidationResult | null>(null)
   const queryClient = useQueryClient()
 
@@ -492,12 +521,23 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
         wide
         headerAction={
             <button
-              onClick={() => setHelpOpen(true)}
-              className="flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success hover:bg-success/25 transition-colors cursor-pointer"
-              title="Как создать профиль"
-            >
-              <QuestionMarkCircleIcon className="w-5 h-5" />
-            </button>
+            onClick={() => setHelpOpen(true)}
+            title="Help"
+            className="
+              flex h-9 w-9 items-center justify-center
+              rounded-md
+              border border-[rgba(130,201,30,0.3)]
+              bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
+              text-lime-400
+              transition-colors duration-150
+              hover:bg-[rgba(169,227,75,0.1)]
+              active:scale-95
+              focus:outline-none
+              cursor-pointer
+            "
+          >
+            <QuestionMarkCircleIcon className="h-5 w-5" />
+          </button>
           }
       >
         <div className="space-y-4">
@@ -568,12 +608,24 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
               </ul>
             </div>
           )}
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="secondary" onClick={onClose}>Cancel</Button>
-            <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>Save Changes</Button>
+          <div className="flex justify-between gap-2 pt-1">
+            <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
+              <RectangleStackIcon className="w-4 h-4" />
+              Profile examples
+            </Button>
+
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => { onClose() }}>Cancel</Button>
+              <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>Save Changes</Button>
+            </div>
           </div>
         </div>
       </Modal>
+      <ProfileExamplesModal
+        open={examplesOpen}
+        onClose={() => setExamplesOpen(false)}
+        onSelect={(yaml) => { setConfig(yaml); setExamplesOpen(false) }}
+      />
       <ProfileHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </>
   )
