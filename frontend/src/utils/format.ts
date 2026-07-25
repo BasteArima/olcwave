@@ -1,10 +1,10 @@
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
 
-/** Format a byte count into a human-readable string (base 1024). */
+/** Format a byte count into a human-readable string (base 1000). */
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!bytes || bytes <= 0) return '0 B'
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), UNITS.length - 1)
-  const value = bytes / Math.pow(1024, i)
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1000)), UNITS.length - 1)
+  const value = bytes / Math.pow(1000, i)
   return `${value.toFixed(i === 0 ? 0 : decimals)} ${UNITS[i]}`
 }
 
@@ -31,12 +31,12 @@ export function formatUptime(since: Date, now: Date = new Date()): string {
 
 /** Convert a byte count into whole gigabytes (for input fields). */
 export function bytesToGB(bytes: number): number {
-  return bytes / (1024 * 1024 * 1024)
+  return bytes / (1000 * 1000 * 1000)
 }
 
 /** Convert gigabytes into bytes. */
 export function gbToBytes(gb: number): number {
-  return Math.round(gb * 1024 * 1024 * 1024)
+  return Math.round(gb * 1000 * 1000 * 1000)
 }
 
 /** Percentage of the limit used (0-100). Returns 0 for unlimited/no-limit. */

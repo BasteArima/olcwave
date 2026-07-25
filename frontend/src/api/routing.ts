@@ -8,10 +8,10 @@ export const routingApi = {
     api.get<string>('/routing/config'),
 
   create: (xrayJson: string) =>
-    api.post<string>('/routing/config', null, { params: { xray_json: xrayJson } }),
+    api.post<string>('/routing/config', JSON.stringify(xrayJson)),
 
   update: (xrayJson: string) =>
-    api.put<string>('/routing/config', null, { params: { xray_json: xrayJson } }),
+    api.put<string>('/routing/config', JSON.stringify(xrayJson)),
 
   delete: () =>
     api.delete('/routing/config'),

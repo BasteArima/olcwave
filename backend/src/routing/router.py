@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
 
 from auth.dependencies import get_current_admin
 from settings.service import SettingsService
@@ -18,13 +18,13 @@ async def get(_admin: dict = Depends(get_current_admin)):
     return profile
 
 @router.post("/config")
-async def create(xray_json: str, _admin: dict = Depends(get_current_admin)):
+async def create(xray_json: str = Body(), _admin: dict = Depends(get_current_admin)):
     await Routing.create(xray_json)
 
     return "ok"
     
 @router.put("/config")
-async def update(xray_json: str, _admin: dict = Depends(get_current_admin)):
+async def update(xray_json: str = Body(), _admin: dict = Depends(get_current_admin)):
     await Routing.update(xray_json)
 
 @router.delete("/config")

@@ -21,7 +21,7 @@ def _parse_duration_minutes(value: str) -> int:
 class RuntimeSettings(BaseModel):
     sub_name: str = "OLCWave"
     sub_update_interval: str = "1h"
-    default_traffic_limit: int = 100 * 1024**3
+    default_traffic_limit: int = 100 * 1000**3
     traffic_collect_interval: int = 10
     sync_interval: str = "4h"
     last_sync_at: datetime | None = None
