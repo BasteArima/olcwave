@@ -14,7 +14,7 @@ from users.router import router as users_router
 from subscriptions.router import router as subscriptions_router
 from olcrtc.router import router as containers_router
 from routing.router import router as routing_router
-from xray_core.sdk import XrayCore
+from xraycore.sdk import XrayCore
 from config import settings
 from database import create_tables
 from traffic import TrafficManager

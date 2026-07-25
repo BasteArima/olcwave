@@ -86,7 +86,8 @@ class OlcRTC:
         env["UPSTREAM_USER"] = upstream_proxy_user
         env["UPSTREAM_PASS"] = upstream_proxy_pass
 
-        container.remove(force=True)
+        if container.status == "running":
+            container.remove(force=True)
 
         client.containers.run(
             image=image,

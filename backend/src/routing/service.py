@@ -5,10 +5,10 @@ from fastapi import HTTPException
 import json
 
 from settings.service import SettingsService
-from xray_core.sdk import XrayCore
+from xraycore.sdk import XrayCore
 from database import async_session_factory
 from routing.db import RoutingDB
-from xray_core.geodata.geodat_pb2 import GeoSiteList, GeoIPList
+from xraycore.geodata.geodat_pb2 import GeoSiteList, GeoIPList
 
 class Routing:
     @staticmethod
@@ -58,7 +58,7 @@ class Routing:
 
         if invalid:
             detail = "Invalid geotag references in routing config:\n" + "\n".join(
-                f'- {e["field"]}: {e["value"]} — {e["reason"]}' for e in invalid
+                f'- {e["field"]}: {e["value"]} - {e["reason"]}' for e in invalid
             )
             raise HTTPException(status_code=422, detail=detail)
 

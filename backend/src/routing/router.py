@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Body
 
 from auth.dependencies import get_current_admin
 from settings.service import SettingsService
-from xray_core.sdk import XrayCore
+from xraycore.sdk import XrayCore
 from routing.service import Routing
 
 router = APIRouter(prefix="/routing", tags=["routing"])
