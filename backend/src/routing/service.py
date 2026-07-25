@@ -12,6 +12,57 @@ from xray_core.geodata.geodat_pb2 import GeoSiteList, GeoIPList
 
 class Routing:
     @staticmethod
+    def validate_routing_geotags(routing: str):
+        try:
+            geotags = Routing.get_geotags()
+        except Exception:
+            return
+
+        geoip_set = set(geotags.get("geoip", []))
+        geosite_set = set(geotags.get("geosite", []))
+
+        try:
+            config = json.loads(routing)
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        rules = config.get("routing", {}).get("rules", [])
+        if not isinstance(rules, list):
+            return
+
+        invalid = []
+
+        for i, rule in enumerate(rules):
+            if not isinstance(rule, dict):
+                continue
+
+            for ip_val in rule.get("ip", []):
+                if isinstance(ip_val, str) and ip_val.lower().startswith("geoip:"):
+                    code = ip_val[6:].lower()
+                    if code not in geoip_set:
+                        invalid.append({
+                            "field": "routing.geoip",
+                            "value": ip_val,
+                            "reason": f'"{ip_val}" does not exist in available geoip tags',
+                        })
+
+            for domain_val in rule.get("domain", []):
+                if isinstance(domain_val, str) and domain_val.lower().startswith("geosite:"):
+                    code = domain_val[9:].lower()
+                    if code not in geosite_set:
+                        invalid.append({
+                            "field": "routing.geosite",
+                            "value": domain_val,
+                            "reason": f'"{domain_val}" does not exist in available geosite tags',
+                        })
+
+        if invalid:
+            detail = "Invalid geotag references in routing config:\n" + "\n".join(
+                f'- {e["field"]}: {e["value"]} — {e["reason"]}' for e in invalid
+            )
+            raise HTTPException(status_code=422, detail=detail)
+
+    @staticmethod
     def routing_to_xray_json(routing: str):
         xray_config = json.loads(routing)
         xray_config["dns"] = {"servers": [{"address": "1.1.1.1"}],"queryStrategy": "IPIfNonMatch"}
@@ -41,6 +92,8 @@ class Routing:
     async def create(routing: str):
         from olcrtc.service import Containers
 
+        Routing.validate_routing_geotags(routing)
+
         xray_json = Routing.routing_to_xray_json(routing)
 
         async with async_session_factory() as db:  
@@ -68,6 +121,8 @@ class Routing:
     @staticmethod
     async def update(routing: str):
         from olcrtc.service import Containers
+
+        Routing.validate_routing_geotags(routing)
 
         xray_json = Routing.routing_to_xray_json(routing)
 
@@ -99,7 +154,7 @@ class Routing:
             Containers.restart(container.name)
 
     @staticmethod
-    async def get_geotags():
+    def get_geotags():
         geoip_data = XrayCore.get_geoip()
         geosite_data = XrayCore.get_geosite()
         
