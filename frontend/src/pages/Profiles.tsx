@@ -336,10 +336,21 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
         headerAction={
           <button
             onClick={() => setHelpOpen(true)}
-            className="flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success hover:bg-success/25 transition-colors cursor-pointer"
-            title="Как создать профиль"
+            title="Help"
+            className="
+              flex h-9 w-9 items-center justify-center
+              rounded-md
+              border border-[rgba(130,201,30,0.3)]
+              bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
+              text-lime-400
+              transition-colors duration-150
+              hover:bg-[rgba(169,227,75,0.1)]
+              active:scale-95
+              focus:outline-none
+              cursor-pointer
+            "
           >
-            <QuestionMarkCircleIcon className="w-5 h-5" />
+            <QuestionMarkCircleIcon className="h-5 w-5" />
           </button>
         }
       >
