@@ -129,10 +129,16 @@ class Subscriptions:
         txt = (
             f"#name: {name}\n" \
             f"#update: 2147483647\n" \
-            f"#refresh: {SettingsService.get().sub_update_interval}\n" \
-            f"#used: {bytes_to_notation(used)}/{bytes_to_notation(limit)}\n" \
-            f"#available: {bytes_to_notation(limit - used)}\n\n" \
+            f"#refresh: {SettingsService.get().sub_update_interval}\n"
         )
+        if limit == 0:
+            txt += f"#used: {bytes_to_notation(used)}\n"
+        else:
+            txt += (
+                f"#used: {bytes_to_notation(used)}/{bytes_to_notation(limit)}\n" \
+                f"#available: {bytes_to_notation(limit - used)}\n\n" 
+            )
+
         for uri in uris:
             name = uri[uri.find("$")+1:]
             name, icon = Subscriptions.remove_last_emoji(name)
