@@ -265,6 +265,8 @@ collect_input() {
   ask SUB_DOMAIN "Subscription domain (e.g. sub.example.com)" "olcsub.${ROOT_DOMAIN}"
   SUB_URL_TEMPLATE="https://${SUB_DOMAIN}/{uuid}"
 
+  ask RW_SQUAD_NAME "Restrict to a specific Remnawave squad (name or UUID, leave empty to skip)" ""
+
   POSTGRES_USER="olcwave"
   POSTGRES_DB="main"
   POSTGRES_PASSWORD="$(generate_secret)"
@@ -297,6 +299,7 @@ write_backend_env() {
     printf 'ADMIN_PASSWORD=%s\n\n'           "$ADMIN_PASSWORD"
     printf 'JWT_SECRET_KEY=%s\n'             "$JWT_SECRET_KEY"
     printf 'JWT_EXPIRE_MINUTES=1440\n\n'
+    printf 'RW_SQUAD_NAME=%s\n'              "$RW_SQUAD_NAME"
   } > backend/.env
   success "Wrote backend/.env"
 }
