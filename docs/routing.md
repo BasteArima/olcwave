@@ -250,11 +250,69 @@ Frontend также выполняет клиентскую валидацию J
 }
 ```
 
+## Конвертер VLESS URI → JSON
+
+На странице Routing доступен инструмент **VLESS URI → JSON**, который конвертирует VLESS URI в JSON-outbound для Xray-core.
+
+### Как использовать
+
+1. Нажмите кнопку **VLESS URI to JSON** в панели инструментов редактора.
+2. Вставьте VLESS URI в текстовое поле.
+3. Нажмите **Генерировать**.
+4. Проверьте предпросмотр сгенерированного outbound (сервер, порт, транспорт, безопасность, SNI и т.д.).
+5. Нажмите **Применить к маршрутизации** - outbound подставится в JSON-конфиг с тегом `proxy` (или заменит существующий).
+
+### Примеры URI
+
+#### VLESS + Reality + TCP
+
+```
+vless://a1b2c3d4-e5f6-7890-abcd-ef1234567890@192.168.1.1:443?security=reality&sni=www.google.com&pbk=ABCDEF1234567890&sid=abcd&fp=chrome&flow=xtls-rprx-vision&type=tcp#My%20Server
+```
+
+#### VLESS + TLS + WebSocket
+
+```
+vless://a1b2c3d4-e5f6-7890-abcd-ef1234567890@192.168.1.1:443?security=tls&sni=example.com&fp=firefox&type=ws&path=/vless#WS%20Server
+```
+
+#### VLESS + TLS + gRPC
+
+```
+vless://a1b2c3d4-e5f6-7890-abcd-ef1234567890@192.168.1.1:443?security=tls&sni=example.com&type=grpc&serviceName=mygrpc#gRPC
+```
+
+#### VLESS без шифрования + TCP
+
+```
+vless://a1b2c3d4-e5f6-7890-abcd-ef1234567890@192.168.1.1:80?type=tcp#Direct
+```
+
+### Как применяется outbound
+
+Конвертер **не пересобирает** весь JSON. Он:
+
+1. Парсит текущий JSON из редактора.
+2. Находит массив `outbounds`.
+3. Ищет outbound с тегом `proxy`.
+4. Заменяет его (или добавляет, если отсутствует).
+
+### Copy JSON
+
+Кнопка **Copy JSON** копирует только сгенерированный outbound (не весь конфиг). Это позволяет вставить outbound вручную в любой JSON-конфиг.
+
+### Архитектура
+
+Вся логика парсинга и генерации выполняется **полностью на frontend** - backend API не используется. Код расположен в:
+
+* `frontend/src/utils/vlessParser.ts` - парсинг, валидация, генерация outbound JSON.
+* `frontend/src/pages/Routing.tsx` - UI-компонент `VlessUriModal`.
+
 ## Архитектура
 
 ### XrayCore контейнер
 
-Новый компонент системы - Docker-контейнер `olcwave-xraycore`, собираемый из `backend/xraycore/`. Содержит:
+Компонент системы - Docker-контейнер `olcwave-xraycore`, собираемый из `backend/xraycore/`. Содержит:
 
 * Alpine Linux + Xray-core v26.3.27
 * Конфигурация передаётся через переменную окружения `CONFIG`
@@ -282,7 +340,7 @@ Routing управляется через эндпоинты `/api/routing/*`:
 | -------- | ----------------- | --------------------------------------- |
 | `GET`    | `/routing/enabled`  | Возвращает `true/false`                 |
 | `GET`    | `/routing/config`   | Возвращает сохранённый JSON             |
-| `POST`   | `/routing/config`   | Создаёт routing (首次 включение)         |
+| `POST`   | `/routing/config`   | Создаёт routing (первое включение)       |
 | `PUT`    | `/routing/config`   | Обновляет конфигурацию                  |
 | `DELETE` | `/routing/config`   | Отключает и удаляет конфигурацию        |
 | `GET`    | `/routing/logs`     | Логи контейнера olcwave-xraycore        |

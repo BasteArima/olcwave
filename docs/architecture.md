@@ -147,14 +147,14 @@ Entry point записывает переменную окружения `CONFIG
 
 ## Routing
 
-Routing — опциональная функция, маршрутизирующая трафик OLCRTC-контейнеров через внешние прокси. Подробное описание см. в [routing.md](routing.md).
+Routing - опциональная функция, маршрутизирующая трафик OLCRTC-контейнеров через внешние прокси. Подробное описание см. в [routing.md](routing.md).
 
 ### Компоненты
 
-* **XrayCore** (`backend/xray_core/sdk.py`) — Docker SDK wrapper для контейнера `olcwave-xraycore`. Управляет запуском/остановкой Xray-core.
-* **Routing service** (`backend/src/routing/service.py`) — бизнес-логика: сборка полной конфигурации Xray из пользовательского JSON (добавление `dns` и `inbounds`), управление записью в БД, перезапуск контейнеров.
-* **Routing DB** (`backend/src/routing/db.py`) — хранение конфигурации в таблице `routing` (одна запись `id=1`).
-* **Routing router** (`backend/src/routing/router.py`) — API-эндпоинты `/api/routing/*`.
+* **XrayCore** (`backend/xray_core/sdk.py`) - Docker SDK wrapper для контейнера `olcwave-xraycore`. Управляет запуском/остановкой Xray-core.
+* **Routing service** (`backend/src/routing/service.py`) - бизнес-логика: сборка полной конфигурации Xray из пользовательского JSON (добавление `dns` и `inbounds`), управление записью в БД, перезапуск контейнеров.
+* **Routing DB** (`backend/src/routing/db.py`) - хранение конфигурации в таблице `routing` (одна запись `id=1`).
+* **Routing router** (`backend/src/routing/router.py`) - API-эндпоинты `/api/routing/*`.
 
 ### При включении routing
 

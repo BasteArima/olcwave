@@ -2,6 +2,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { routingApi, type GeotagsResponse } from '../api/routing'
 import { validateRoutingJson, stripRoutingFields, type RoutingValidationResult } from '../utils/routingValidator'
+import {
+  parseVlessUri,
+  validateVlessUri,
+  generateVlessOutbound,
+  applyOutboundToRoutingConfig,
+  buildPreview,
+  VlessParseErrorImpl,
+  type VlessPreview,
+  type VlessParseError,
+} from '../utils/vlessParser'
 import { useDebounce } from '../utils/useDebounce'
 import { useLanguage } from '../i18n/useLanguage'
 import Button from '../components/ui/Button'
@@ -424,6 +434,181 @@ function GeotagsSearchModal({ open, onClose, geotags }: {
   )
 }
 
+function VlessUriModal({
+  open, onClose, currentConfig, onApply,
+}: {
+  open: boolean
+  onClose: () => void
+  currentConfig: string
+  onApply: (updatedConfig: string) => void
+}) {
+  const { t } = useLanguage()
+  const { success: toastSuccess, error: toastError } = useToasts()
+  const [uri, setUri] = useState('')
+  const [errors, setErrors] = useState<VlessParseError[]>([])
+  const [preview, setPreview] = useState<VlessPreview | null>(null)
+  const [outbound, setOutbound] = useState<Record<string, unknown> | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      setUri('')
+      setErrors([])
+      setPreview(null)
+      setOutbound(null)
+    }
+  }, [open])
+
+  const handleUriChange = (value: string) => {
+    setUri(value)
+    if (errors.length > 0) {
+      setErrors([])
+      setPreview(null)
+      setOutbound(null)
+    }
+  }
+
+  const handleGenerate = () => {
+    const trimmed = uri.trim()
+    if (!trimmed) {
+      setErrors([{ field: '', message: t('vlessUriEmpty') }])
+      setPreview(null)
+      setOutbound(null)
+      return
+    }
+
+    try {
+      const parsed = parseVlessUri(trimmed)
+      const validationErrors = validateVlessUri(parsed)
+      if (validationErrors.length > 0) {
+        setErrors(validationErrors)
+        setPreview(null)
+        setOutbound(null)
+        return
+      }
+
+      const generated = generateVlessOutbound(parsed)
+      const previewData = buildPreview(parsed)
+
+      setErrors([])
+      setOutbound(generated)
+      setPreview(previewData)
+    } catch (e) {
+      if (e instanceof VlessParseErrorImpl) {
+        setErrors([{ field: e.field, message: e.message }])
+      } else {
+        setErrors([{ field: '', message: (e as Error).message || t('vlessUriError') }])
+      }
+      setPreview(null)
+      setOutbound(null)
+    }
+  }
+
+  const handleCopy = async () => {
+    if (!outbound) return
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(outbound, null, 2))
+      toastSuccess(t('vlessUriCopied'))
+    } catch {
+      toastError(t('copyToClipboard'))
+    }
+  }
+
+  const handleApply = () => {
+    if (!outbound) return
+    try {
+      const updated = applyOutboundToRoutingConfig(currentConfig, outbound)
+      onApply(updated)
+      toastSuccess(t('vlessUriApplied'))
+      onClose()
+    } catch {
+      toastError(t('vlessUriError'))
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={t('vlessUriModalTitle')} wide>
+      <div className="space-y-4">
+        <p className="text-xs text-text-muted">{t('vlessUriModalDesc')}</p>
+
+        <div className="flex flex-col gap-1.5">
+          <textarea
+            value={uri}
+            onChange={(e) => handleUriChange(e.target.value)}
+            placeholder={t('pasteVlessUri')}
+            rows={3}
+            className="bg-bg-tertiary border border-border rounded-md px-3 py-2.5 text-sm text-text-primary leading-relaxed
+              placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30
+              font-mono resize-y transition-all"
+            spellCheck={false}
+          />
+        </div>
+
+        {errors.length > 0 && (
+          <div className="bg-danger/5 border border-danger/15 rounded-lg px-3 py-2.5 space-y-1">
+            <p className="text-xs font-semibold text-danger">{t('vlessUriError')}:</p>
+            <ul className="space-y-1">
+              {errors.map((err, i) => (
+                <li key={i} className="text-xs text-danger flex gap-2">
+                  <span className="shrink-0">-</span>
+                  <span>{err.field ? <><strong>{err.field}:</strong> {err.message}</> : err.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {preview && (
+          <div className="bg-bg-tertiary rounded-lg px-3 py-2.5 space-y-1.5">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">{t('configPreview')}</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <PreviewRow label={t('vlessPreviewServer')} value={preview.server} />
+              <PreviewRow label={t('vlessPreviewPort')} value={String(preview.port)} />
+              <PreviewRow label={t('vlessPreviewTransport')} value={preview.transport} />
+              <PreviewRow label={t('vlessPreviewSecurity')} value={preview.security} />
+              <PreviewRow label={t('vlessPreviewSni')} value={preview.sni} />
+              <PreviewRow label={t('vlessPreviewFingerprint')} value={preview.fingerprint} />
+              <PreviewRow label={t('vlessPreviewRemark')} value={preview.remark} />
+              <PreviewRow label={t('vlessPreviewUuid')} value={preview.uuid} />
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between gap-2 pt-1">
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleGenerate}>
+              {t('generate')}
+            </Button>
+            {outbound && (
+              <Button variant="secondary" onClick={handleCopy}>
+                {t('copyJson')}
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose}>
+              {t('cancel')}
+            </Button>
+            {outbound && (
+              <Button onClick={handleApply}>
+                {t('applyToRouting')}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function PreviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2 text-xs">
+      <span className="text-text-muted shrink-0">{label}:</span>
+      <span className="text-text-primary font-mono truncate">{value}</span>
+    </div>
+  )
+}
+
 function ConfiguringSection({
   config, onChange, validation, geotags, canSave, isSaving, onSave,
 }: {
@@ -439,6 +624,7 @@ function ConfiguringSection({
   const [helpOpen, setHelpOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
   const [geotagsOpen, setGeotagsOpen] = useState(false)
+  const [vlessOpen, setVlessOpen] = useState(false)
 
   return (
     <>
@@ -489,6 +675,9 @@ function ConfiguringSection({
 
           <div className="flex justify-between gap-2 pt-1">
             <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setVlessOpen(true)}>
+                {t('vlessUriToJson')}
+              </Button>
               <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
                 <DocumentTextIcon className="w-4 h-4" />
                 {t('examples')}
@@ -517,6 +706,12 @@ function ConfiguringSection({
         onClose={() => setGeotagsOpen(false)}
         geotags={geotags}
       />
+      <VlessUriModal
+        open={vlessOpen}
+        onClose={() => setVlessOpen(false)}
+        currentConfig={config}
+        onApply={(updated) => { onChange(updated); setVlessOpen(false) }}
+      />
     </>
   )
 }
@@ -537,6 +732,7 @@ function EditorSection({
   const [helpOpen, setHelpOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
   const [geotagsOpen, setGeotagsOpen] = useState(false)
+  const [vlessOpen, setVlessOpen] = useState(false)
 
   return (
     <>
@@ -600,6 +796,9 @@ function EditorSection({
 
           <div className="flex justify-between gap-2 pt-1">
             <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setVlessOpen(true)}>
+                {t('vlessUriToJson')}
+              </Button>
               <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
                 <DocumentTextIcon className="w-4 h-4" />
                 {t('examples')}
@@ -627,6 +826,12 @@ function EditorSection({
         open={geotagsOpen}
         onClose={() => setGeotagsOpen(false)}
         geotags={geotags}
+      />
+      <VlessUriModal
+        open={vlessOpen}
+        onClose={() => setVlessOpen(false)}
+        currentConfig={config}
+        onApply={(updated) => { onChange(updated); setVlessOpen(false) }}
       />
     </>
   )
