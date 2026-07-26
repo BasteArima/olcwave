@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     RW_API_URL: str
     RW_API_TOKEN: str
+    RW_CADDY_TOKEN: str = ""
 
     DB_HOST: str
     DB_PORT: int

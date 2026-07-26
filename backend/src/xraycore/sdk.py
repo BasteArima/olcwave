@@ -1,4 +1,6 @@
 import json
+import io
+import tarfile
 import docker
 from docker.errors import ImageNotFound, NotFound
 from docker.models.containers import Container
@@ -52,19 +54,19 @@ class XrayCore:
     @staticmethod
     def get_geoip() -> bytes:
         container = client.containers.get("olcwave-xraycore")
-        exit_code, data = container.exec_run("cat /app/geoip.dat")
 
-        if exit_code != 0:
-            raise RuntimeError("Failed to read geoip.dat")
+        stream, _ = container.get_archive("/app/geoip.dat")
 
-        return data
+        with tarfile.open(fileobj=io.BytesIO(b"".join(stream))) as tar:
+            member = tar.getmembers()[0]
+            return tar.extractfile(member).read()
 
     @staticmethod
     def get_geosite() -> bytes:
         container = client.containers.get("olcwave-xraycore")
-        exit_code, data = container.exec_run("cat /app/geosite.dat")
 
-        if exit_code != 0:
-            raise RuntimeError("Failed to read geosite.dat")
+        stream, _ = container.get_archive("/app/geosite.dat")
 
-        return data
+        with tarfile.open(fileobj=io.BytesIO(b"".join(stream))) as tar:
+            member = tar.getmembers()[0]
+            return tar.extractfile(member).read()

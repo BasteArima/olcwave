@@ -1,10 +1,9 @@
-from remnawave.models.users import GetAllUsersResponseDto
-from remnawave.models.users import GetAllUsersResponseDto
+from remnawave.models.users import GetAllUsersResponseDto, UserResponseDto
 from remnawave.models.users import GetUserByShortUuidResponseDto
 from remnawave.models.subscription import GetSubscriptionInfoResponseDto
-from remnawave import RemnawaveSDK  # pyright: ignore[reportMissingTypeStubs]
-from remnawave.exceptions.general import NotFoundError  # pyright: ignore[reportMissingTypeStubs]
-from remnawave.models import (  # pyright: ignore[reportMissingTypeStubs]
+from remnawave import RemnawaveSDK
+from remnawave.exceptions.general import NotFoundError
+from remnawave.models import (
     SubscriptionInfoResponseDto,
     SubscriptionSettingsResponseDto
 )
@@ -12,14 +11,36 @@ from remnawave.models import (  # pyright: ignore[reportMissingTypeStubs]
 from config import settings
 
 
-remnawave = RemnawaveSDK(base_url=settings.RW_API_URL, token=settings.RW_API_TOKEN)
-
+remnawave = RemnawaveSDK(
+    base_url=settings.RW_API_URL,
+    token=settings.RW_API_TOKEN,
+    caddy_token=settings.RW_CADDY_TOKEN or None,
+)
 
 async def getAllUsers() -> GetAllUsersResponseDto:
-    users_coroutine = remnawave.users.get_all_users()
-    users: GetAllUsersResponseDto = await users_coroutine # what the f are this syntax  # pyright: ignore[reportAssignmentType]
+    PAGE_SIZE = 100
 
-    return users
+    start = 0
+    users: list[UserResponseDto] = []
+
+    while True:
+        response = await remnawave.users.get_all_users(
+            start=start,
+            size=PAGE_SIZE,
+        )
+
+        users.extend(response.users)
+
+        if len(response.users) < PAGE_SIZE or len(users) >= response.total:
+            break
+
+        start += len(response.users)
+
+    return GetAllUsersResponseDto(
+        users=users,
+        total=len(users),
+    )
+
 
 async def isUserValid(short_uuid: str) -> SubscriptionInfoResponseDto | None:
     try:

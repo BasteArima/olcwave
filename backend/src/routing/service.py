@@ -1,3 +1,4 @@
+import asyncio
 from fastapi.exceptions import HTTPException
 
 from fastapi import HTTPException
@@ -16,19 +17,26 @@ class Routing:
         try:
             geotags = Routing.get_geotags()
         except Exception:
-            return
+            raise HTTPException(status_code=400, detail="Cannot load geotags")
 
-        geoip_set = set(geotags.get("geoip", []))
-        geosite_set = set(geotags.get("geosite", []))
+        geoip_set = {
+            x.lower()
+            for x in geotags.get("geoip", [])
+        }
+
+        geosite_set = {
+            x.lower()
+            for x in geotags.get("geosite", [])
+        }
 
         try:
             config = json.loads(routing)
         except (json.JSONDecodeError, TypeError):
-            return
+            raise HTTPException(status_code=400, detail="Invalid json")
 
         rules = config.get("routing", {}).get("rules", [])
         if not isinstance(rules, list):
-            return
+            raise HTTPException(status_code=400, detail="Routing.rules is required")
 
         invalid = []
 
@@ -48,7 +56,7 @@ class Routing:
 
             for domain_val in rule.get("domain", []):
                 if isinstance(domain_val, str) and domain_val.lower().startswith("geosite:"):
-                    code = domain_val[9:].lower()
+                    code = domain_val[8:].lower()
                     if code not in geosite_set:
                         invalid.append({
                             "field": "routing.geosite",
@@ -105,10 +113,14 @@ class Routing:
 
         await SettingsService.set(settings)
 
-        XrayCore.run(xray_json)
+        asyncio.create_task(
+            asyncio.to_thread(
+                XrayCore.run,
+                xray_json,
+            )
+        )
 
-        for container in Containers.all():
-            Containers.restart(container.name, upstream_proxy_addr=f"host.docker.internal:10808")
+        asyncio.create_task(Routing.restart_all_with_proxy())
 
         return xray_json
 
@@ -129,10 +141,14 @@ class Routing:
         async with async_session_factory() as db:  
             _= await RoutingDB.update(db, xray_json) 
 
-        XrayCore.run(xray_json)
+        asyncio.create_task(
+            asyncio.to_thread(
+                XrayCore.run,
+                xray_json,
+            )
+        )
 
-        for container in Containers.all():
-            Containers.restart(container.name, upstream_proxy_addr=f"host.docker.internal:10808")
+        asyncio.create_task(Routing.restart_all_with_proxy())
         
         return xray_json
 
@@ -148,10 +164,13 @@ class Routing:
         
         await SettingsService.set(settings)
 
-        XrayCore.stop()
+        asyncio.create_task(
+            asyncio.to_thread(
+                XrayCore.stop
+            )
+        )
 
-        for container in Containers.all():
-            Containers.restart(container.name)
+        asyncio.create_task(Routing.restart_all_with_proxy())
 
     @staticmethod
     def get_geotags():
@@ -168,3 +187,21 @@ class Routing:
             "geoip": [x.code.lower() for x in geoip.entry],
             "geosite": [x.code.lower() for x in geosite.entry]
         }
+    
+    @staticmethod
+    async def restart_all_with_proxy():
+        from olcrtc.service import Containers
+
+        sem = asyncio.Semaphore(10)
+
+        async def restart_one(container):
+            async with sem:
+                await asyncio.to_thread(
+                    Containers.restart,
+                    container.name,
+                    upstream_proxy_addr="host.docker.internal:10808",
+                )
+
+        await asyncio.gather(
+            *(restart_one(c) for c in Containers.all())
+        )

@@ -92,6 +92,7 @@ nano backend/.env
 ```ini
 RW_API_URL=https://your-remnawave-host        # базовый URL API Remnawave
 RW_API_TOKEN=...                              # API-токен Remnawave
+RW_CADDY_TOKEN=                               # токен Caddy (оставьте пустым, если не используется)
 POSTGRES_PASSWORD=<something strong>
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=<something strong>

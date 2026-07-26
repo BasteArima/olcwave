@@ -250,6 +250,7 @@ collect_input() {
   RW_API_URL="https://${RW_DOMAIN}"
 
   ask_required RW_API_TOKEN "Remnawave API token"
+  ask RW_CADDY_TOKEN "Caddy Auth token (Leave blank if you dont use it)" ""
 
   ask ADMIN_USERNAME "Admin username" "admin"
 
@@ -290,6 +291,7 @@ write_backend_env() {
   {
     printf 'RW_API_URL=%s\n'                 "$RW_API_URL"
     printf 'RW_API_TOKEN=%s\n\n'             "$RW_API_TOKEN"
+    printf 'RW_CADDY_TOKEN=%s\n\n'           "$RW_CADDY_TOKEN"
     printf 'DB_HOST=postgres\n'
     printf 'DB_PORT=5432\n'
     printf 'POSTGRES_USER=%s\n'              "$POSTGRES_USER"
