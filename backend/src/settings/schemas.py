@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 DURATION_RE = re.compile(r"^(\d+)([mhd])$")
@@ -26,6 +26,8 @@ class RuntimeSettings(BaseModel):
     sync_interval: str = "4h"
     last_sync_at: datetime | None = None
     xray_routing_enabled: bool = False
+    room_autogen_tokens: dict = Field(default_factory=dict)
+
 
     @field_validator("sub_update_interval")
     @classmethod

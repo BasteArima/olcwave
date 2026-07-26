@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { profilesApi } from '../api/profiles'
 import type { Profile, YamlValidationResult } from '../types'
 import { validateYaml } from '../utils/yamlValidator'
 import { stripProfileFields } from '../utils/profileConfig'
-import { checkTagUniqueness } from '../utils/tagValidator'
+import { checkTag, validateTagSync } from '../utils/tagValidator'
 import { useDebounce } from '../utils/useDebounce'
 import { useLanguage } from '../i18n/useLanguage'
 import Button from '../components/ui/Button'
@@ -12,6 +12,7 @@ import Input from '../components/ui/Input'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { Card, ErrorState, EmptyState, Skeleton } from '../components/ui/Misc'
+import { load, dump } from 'js-yaml'
 import {
   MagnifyingGlassIcon,
   TrashIcon,
@@ -25,6 +26,8 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   XCircleIcon,
+  SparklesIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 
 export default function Profiles() {
@@ -237,6 +240,173 @@ function FormError({ message }: { message: string }) {
   )
 }
 
+function RoomAutogenerationModal({ open, onClose, config, onConfigUpdate }: {
+  open: boolean
+  onClose: () => void
+  config: string
+  onConfigUpdate: (yaml: string) => void
+}) {
+  const { t } = useLanguage()
+
+  const provider = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const auth = root.auth as Record<string, unknown> | undefined
+        return auth?.provider as string | undefined
+      }
+    } catch {}
+    return undefined
+  }, [config])
+
+  const [sessionId, setSessionId] = useState('')
+  const [wbJson, setWbJson] = useState('')
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [statusMsg, setStatusMsg] = useState('')
+
+  useEffect(() => {
+    if (open) {
+      setSessionId('')
+      setWbJson('')
+      setStatus('idle')
+      setStatusMsg('')
+    }
+  }, [open])
+
+  const handleEnable = useCallback(() => {
+    try {
+      const doc = load(config)
+      if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+        setStatus('error')
+        setStatusMsg('Invalid YAML')
+        return
+      }
+
+      const root = doc as Record<string, unknown>
+      const auth = (root.auth || {}) as Record<string, unknown>
+
+      if (provider === 'telemost') {
+        if (!sessionId.trim()) {
+          setStatus('error')
+          setStatusMsg('Please enter Session_id')
+          return
+        }
+        auth.token = sessionId.trim()
+      } else if (provider === 'wbstream') {
+        if (!wbJson.trim()) {
+          setStatus('error')
+          setStatusMsg('Please paste the JSON')
+          return
+        }
+        let parsed: Record<string, unknown>
+        try {
+          parsed = JSON.parse(wbJson)
+        } catch {
+          setStatus('error')
+          setStatusMsg(t('invalidWbAuthJson'))
+          return
+        }
+        const accessToken = parsed.accessToken
+        if (!accessToken) {
+          setStatus('error')
+          setStatusMsg(t('accessTokenNotFound'))
+          return
+        }
+        auth.token = accessToken
+      }
+
+      root.auth = auth
+      delete root.room
+
+      const newYaml = dump(root, { indent: 2, lineWidth: -1, noRefs: true })
+      onConfigUpdate(newYaml)
+      setStatus('success')
+      setStatusMsg(t('autogenerationEnabled'))
+      setTimeout(() => onClose(), 1500)
+    } catch {
+      setStatus('error')
+      setStatusMsg('Failed to process YAML')
+    }
+  }, [config, provider, sessionId, wbJson, onConfigUpdate, onClose, t])
+
+  if (!provider || provider === 'jitsi' || provider === 'none') return null
+
+  return (
+    <Modal open={open} onClose={onClose} title={t('roomAutogenerationTitle')} wide>
+      <div className="space-y-4 text-sm text-text-primary">
+        {provider === 'telemost' && (
+          <>
+            <ol className="list-decimal list-inside space-y-1 text-text-secondary">
+              <li>{t('telemostStep1')}</li>
+              <li>{t('telemostStep2')}</li>
+              <li>{t('telemostStep3')}</li>
+              <li>{t('telemostStep4')}</li>
+              <li>{t('telemostStep5')}</li>
+              <li>{t('telemostStep6')}</li>
+              <li>{t('telemostStep7')}</li>
+            </ol>
+            <div>
+              <label className="text-xs font-medium text-text-secondary">{t('sessionId')}</label>
+              <input
+                value={sessionId}
+                onChange={(e) => setSessionId(e.target.value)}
+                className="mt-1 w-full bg-bg-tertiary border border-border rounded-md px-3 py-2 text-sm text-text-primary font-mono
+                  focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all"
+                placeholder="3:1.5.0.1:1:1.1.2:1..."
+              />
+            </div>
+          </>
+        )}
+
+        {provider === 'wbstream' && (
+          <>
+            <ol className="list-decimal list-inside space-y-1 text-text-secondary">
+              <li>{t('wbstreamStep1')}</li>
+              <li>{t('wbstreamStep2')}</li>
+              <li>{t('wbstreamStep3')}</li>
+              <li>{t('wbstreamStep4')}</li>
+              <li>{t('wbstreamStep5')}</li>
+              <li>{t('wbstreamStep6')}</li>
+            </ol>
+            <div>
+              <label className="text-xs font-medium text-text-secondary">{t('pasteJsonHere')}</label>
+              <textarea
+                value={wbJson}
+                onChange={(e) => setWbJson(e.target.value)}
+                rows={6}
+                className="mt-1 w-full bg-bg-tertiary border border-border rounded-md px-3 py-2 text-sm text-text-primary font-mono
+                  focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 transition-all resize-y"
+                spellCheck={false}
+                placeholder='{"authType":"wb","accessToken":"TOKEN",...}'
+              />
+            </div>
+          </>
+        )}
+
+        {status === 'success' && (
+          <div className="flex items-center gap-2 bg-success/10 border border-success/20 rounded-lg px-3 py-2.5 text-sm text-success">
+            <CheckCircleIcon className="w-4 h-4 shrink-0" />
+            <span>{statusMsg}</span>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="flex items-center gap-2 bg-danger/10 border border-danger/20 rounded-lg px-3 py-2.5 text-sm text-danger">
+            <ExclamationCircleIcon className="w-4 h-4 shrink-0" />
+            <span>{statusMsg}</span>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="secondary" onClick={onClose}>{t('cancel')}</Button>
+          <Button onClick={handleEnable}>{t('enableAutogeneration')}</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function ProfileHelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useLanguage()
   return (
@@ -304,12 +474,44 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
   const [config, setConfig] = useState('')
   const [error, setError] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
+  const [autogenOpen, setAutogenOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
   const [yamlResult, setYamlResult] = useState<YamlValidationResult | null>(null)
   const [tagResult, setTagResult] = useState<{ valid: boolean; message?: string } | null>(null)
   const queryClient = useQueryClient()
 
   const debouncedTag = useDebounce(tag, 400)
+
+  const formatResult = useMemo(() => validateTagSync(tag), [tag])
+
+  const tagError = formatResult?.message ?? (tagResult?.valid === false ? tagResult.message : undefined)
+  const tagValid = formatResult === null && (tagResult === null || tagResult.valid)
+
+  const parsedProvider = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const auth = root.auth as Record<string, unknown> | undefined
+        return auth?.provider as string | undefined
+      }
+    } catch {}
+    return undefined
+  }, [config])
+
+  const parsedToken = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const auth = root.auth as Record<string, unknown> | undefined
+        return auth?.token as string | undefined
+      }
+    } catch {}
+    return undefined
+  }, [config])
+
+  const showAutogenHint = parsedProvider && (parsedProvider === 'telemost' || parsedProvider === 'wbstream') && !parsedToken
 
   useEffect(() => {
     if (config.trim()) {
@@ -320,11 +522,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
   }, [config])
 
   useEffect(() => {
-    if (!debouncedTag.trim()) {
-      setTagResult(null)
-      return
-    }
-    checkTagUniqueness(debouncedTag).then(setTagResult)
+    checkTag(debouncedTag).then(setTagResult)
   }, [debouncedTag])
 
   const mutation = useMutation({
@@ -348,6 +546,33 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
     setTagResult(null)
   }
 
+  const helpBtnClass = `
+    flex h-9 w-9 items-center justify-center
+    rounded-md
+    border border-[rgba(130,201,30,0.3)]
+    bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
+    text-lime-400
+    transition-colors duration-150
+    hover:bg-[rgba(169,227,75,0.1)]
+    active:scale-95
+    focus:outline-none
+    cursor-pointer
+  `
+  const autogenBtnClass = `
+    inline-flex items-center gap-2
+    h-9 px-3
+    rounded-md
+    border border-[rgba(130,201,30,0.3)]
+    bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
+    text-lime-400
+    transition-colors duration-150
+    hover:bg-[rgba(169,227,75,0.1)]
+    active:scale-95
+    focus:outline-none
+    cursor-pointer
+    whitespace-nowrap
+  `
+
   return (
     <>
       <Modal
@@ -357,31 +582,32 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
         description={t('addNewProfile')}
         wide
         headerAction={
-          <button
-            onClick={() => setHelpOpen(true)}
-            title={t('help')}
-            className="
-              flex h-9 w-9 items-center justify-center
-              rounded-md
-              border border-[rgba(130,201,30,0.3)]
-              bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
-              text-lime-400
-              transition-colors duration-150
-              hover:bg-[rgba(169,227,75,0.1)]
-              active:scale-95
-              focus:outline-none
-              cursor-pointer
-            "
-          >
-            <QuestionMarkCircleIcon className="h-5 w-5" />
-          </button>
+          <>
+            {showAutogenHint && (
+              <button
+                onClick={() => setAutogenOpen(true)}
+                title={t('howToEnableRoomAutogeneration')}
+                className={autogenBtnClass}
+              >
+                <SparklesIcon className="h-5 w-5" />
+                <span>{t('roomAutogenerationTitle')}</span>
+              </button>
+            )}
+            <button
+              onClick={() => setHelpOpen(true)}
+              title={t('help')}
+              className={helpBtnClass}
+            >
+              <QuestionMarkCircleIcon className="h-5 w-5" />
+            </button>
+          </>
         }
       >
         <div className="space-y-4">
           {error && <FormError message={error} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label={t('name')} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('displayName')} />
-            <Input label={t('tag')} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique_tag" error={tagResult?.valid === false ? tagResult.message : undefined} />
+            <Input label={t('tag')} value={tag} onChange={(e) => setTag(e.target.value)} placeholder="unique_tag" error={tagError} />
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
@@ -439,6 +665,14 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
               </ul>
             </div>
           )}
+
+          {showAutogenHint && (
+            <div className="flex items-center gap-2 bg-info/5 border border-info/15 rounded-lg px-3 py-2.5 text-sm text-info">
+              <InformationCircleIcon className="w-4 h-4 shrink-0" />
+              <span>{t('roomAutogenerationHint')}</span>
+            </div>
+          )}
+
           <div className="flex justify-between gap-2 pt-1">
             <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
               <RectangleStackIcon className="w-4 h-4" />
@@ -449,7 +683,7 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
               <Button variant="secondary" onClick={() => { reset(); onClose() }}>
                 {t('cancel')}
               </Button>
-              <Button loading={mutation.isPending} onClick={() => mutation.mutate()}>
+              <Button loading={mutation.isPending} disabled={!tagValid} onClick={() => mutation.mutate()}>
                 {t('createProfileButton')}
               </Button>
             </div>
@@ -462,6 +696,12 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
         onClose={() => setExamplesOpen(false)}
         onSelect={(yaml) => { setConfig(yaml); setExamplesOpen(false) }}
       />
+      <RoomAutogenerationModal
+        open={autogenOpen}
+        onClose={() => setAutogenOpen(false)}
+        config={config}
+        onConfigUpdate={(yaml) => { setConfig(yaml); setAutogenOpen(false) }}
+      />
     </>
   )
 }
@@ -472,9 +712,36 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
   const [config, setConfig] = useState('')
   const [error, setError] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
+  const [autogenOpen, setAutogenOpen] = useState(false)
   const [examplesOpen, setExamplesOpen] = useState(false)
   const [yamlResult, setYamlResult] = useState<YamlValidationResult | null>(null)
   const queryClient = useQueryClient()
+
+  const parsedProvider = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const auth = root.auth as Record<string, unknown> | undefined
+        return auth?.provider as string | undefined
+      }
+    } catch {}
+    return undefined
+  }, [config])
+
+  const parsedToken = useMemo(() => {
+    try {
+      const doc = load(config)
+      if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+        const root = doc as Record<string, unknown>
+        const auth = root.auth as Record<string, unknown> | undefined
+        return auth?.token as string | undefined
+      }
+    } catch {}
+    return undefined
+  }, [config])
+
+  const showAutogenHint = parsedProvider && (parsedProvider === 'telemost' || parsedProvider === 'wbstream') && !parsedToken
 
   useEffect(() => {
     if (profile) {
@@ -507,6 +774,33 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
 
   if (!profile) return null
 
+  const helpBtnClass = `
+    flex h-9 w-9 items-center justify-center
+    rounded-md
+    border border-[rgba(130,201,30,0.3)]
+    bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
+    text-lime-400
+    transition-colors duration-150
+    hover:bg-[rgba(169,227,75,0.1)]
+    active:scale-95
+    focus:outline-none
+    cursor-pointer
+  `
+  const autogenBtnClass = `
+    inline-flex items-center gap-2
+    h-9 px-3
+    rounded-md
+    border border-[rgba(130,201,30,0.3)]
+    bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
+    text-lime-400
+    transition-colors duration-150
+    hover:bg-[rgba(169,227,75,0.1)]
+    active:scale-95
+    focus:outline-none
+    cursor-pointer
+    whitespace-nowrap
+  `
+
   return (
     <>
       <Modal
@@ -516,25 +810,26 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
         description={t('editProfileDesc', { tag: profile.tag })}
         wide
         headerAction={
+          <>
+            {showAutogenHint && (
+              <button
+                onClick={() => setAutogenOpen(true)}
+                title={t('howToEnableRoomAutogeneration')}
+                className={autogenBtnClass}
+              >
+                <SparklesIcon className="h-5 w-5" />
+                <span>{t('roomAutogenerationTitle')}</span>
+              </button>
+            )}
             <button
-            onClick={() => setHelpOpen(true)}
-            title={t('help')}
-            className="
-              flex h-9 w-9 items-center justify-center
-              rounded-md
-              border border-[rgba(130,201,30,0.3)]
-              bg-[linear-gradient(135deg,rgba(130,201,30,0.15)_0%,rgba(116,184,22,0.1)_100%)]
-              text-lime-400
-              transition-colors duration-150
-              hover:bg-[rgba(169,227,75,0.1)]
-              active:scale-95
-              focus:outline-none
-              cursor-pointer
-            "
-          >
-            <QuestionMarkCircleIcon className="h-5 w-5" />
-          </button>
-          }
+              onClick={() => setHelpOpen(true)}
+              title={t('help')}
+              className={helpBtnClass}
+            >
+              <QuestionMarkCircleIcon className="h-5 w-5" />
+            </button>
+          </>
+        }
       >
         <div className="space-y-4">
           {error && <FormError message={error} />}
@@ -604,6 +899,14 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
               </ul>
             </div>
           )}
+
+          {showAutogenHint && (
+            <div className="flex items-center gap-2 bg-info/5 border border-info/15 rounded-lg px-3 py-2.5 text-sm text-info">
+              <InformationCircleIcon className="w-4 h-4 shrink-0" />
+              <span>{t('roomAutogenerationHint')}</span>
+            </div>
+          )}
+
           <div className="flex justify-between gap-2 pt-1">
             <Button variant="secondary" onClick={() => setExamplesOpen(true)}>
               <RectangleStackIcon className="w-4 h-4" />
@@ -623,6 +926,12 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
         onSelect={(yaml) => { setConfig(yaml); setExamplesOpen(false) }}
       />
       <ProfileHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <RoomAutogenerationModal
+        open={autogenOpen}
+        onClose={() => setAutogenOpen(false)}
+        config={config}
+        onConfigUpdate={(yaml) => { setConfig(yaml); setAutogenOpen(false) }}
+      />
     </>
   )
 }

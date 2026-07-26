@@ -1,9 +1,22 @@
 import { profilesApi } from '../api/profiles'
 import type { TagValidationResult } from '../types'
 
-export async function checkTagUniqueness(tag: string, excludeTag?: string): Promise<TagValidationResult> {
+const TAG_REGEX = /^[a-zA-Z0-9_]+$/
+
+export function validateTagSync(tag: string): { valid: false; message: string } | null {
   if (!tag.trim()) {
-    return { valid: true }
+    return { valid: false, message: 'Tag cannot be empty' }
+  }
+  if (!TAG_REGEX.test(tag)) {
+    return { valid: false, message: 'Tag may contain only letters, numbers, and underscores.' }
+  }
+  return null
+}
+
+export async function checkTag(tag: string, excludeTag?: string): Promise<TagValidationResult> {
+  const syncResult = validateTagSync(tag)
+  if (syncResult) {
+    return syncResult
   }
 
   try {

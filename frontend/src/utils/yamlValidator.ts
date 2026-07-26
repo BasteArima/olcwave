@@ -54,11 +54,24 @@ export function validateYaml(yaml: string): YamlValidationResult {
     }
   }
 
-  // room.id required when provider exists and != none
+  // room.id validation
   const room = root.room as Record<string, unknown> | undefined
   if (provider && provider !== 'none') {
-    if (!room?.id) {
-      addError(errors, 'room.id', 'Required when auth.provider is set and not "none"')
+    if (provider === 'telemost' || provider === 'wbstream') {
+      const token = auth?.token as string | undefined
+      if (!token) {
+        if (!room?.id) {
+          addError(errors, 'room.id', 'Required when auth.provider is set and auth.token not set')
+        }
+      } else {
+        if (room?.id) {
+          addWarning(warnings, 'room.id', 'Generated automatically when auth.token is set')
+        }
+      }
+    } else {
+      if (!room?.id) {
+        addError(errors, 'room.id', 'Required when auth.provider is set')
+      }
     }
   }
 

@@ -1,9 +1,11 @@
+import json
 from fastapi import Response
 from remnawave.models import SubscriptionInfoResponseDto
 
 from settings.service import SettingsService
 from users.schemas import TrafficInfoSchema, UserSchema
 from olcrtc.sdk import OlcRTC
+from profiles.roomGenerator import RoomChecker, RoomGenerator
 from profiles.service import Containers
 from profiles.service import Profiles
 from rw.sdk import isUserValid
@@ -69,18 +71,37 @@ class Subscriptions:
 
 
     @staticmethod
-    def profile_to_config(profile: str):
+    async def profile_to_config(profile: str):
         config = yaml.safe_load(profile)  # pyright: ignore[reportAny]
         config["crypto"]["key"] = random.randbytes(32).hex()
 
-        roomUrl: list[str] = config["room"]["id"].split("/")  # pyright: ignore[reportAny]
+        if (
+            config["auth"]["provider"] in ["telemost", "wbstream"] and
+            config["auth"].get("token", "") != "" and
+                (
+                    config.get("room", {}).get("id", "") == ""
+                )
+            ):
+            generated_room_id = await RoomGenerator.generate_room_id(config["auth"]["provider"], config["auth"]["token"])
 
-        if len(roomUrl) == 3:
-            roomUrl.append(str(random.randbytes(16).hex()))
-        elif len(roomUrl) == 4 and not roomUrl[3]:
-            roomUrl[3] = str(random.randbytes(16).hex())
-        
-        config['room']['id'] = "/".join(roomUrl)
+            if not generated_room_id:
+                raise RuntimeError("Failed to generate room id")
+
+            config["room"] = config.get("room", {})
+            config["room"]["id"] = generated_room_id
+
+        if config["auth"]["provider"] == "telemost":
+            config["auth"].pop("token")
+
+        if config["auth"]["provider"] == "jitsi":
+            roomUrl: list[str] = config["room"]["id"].split("/")  # pyright: ignore[reportAny]
+
+            if len(roomUrl) == 3:
+                roomUrl.append(str(random.randbytes(16).hex()))
+            elif len(roomUrl) == 4 and not roomUrl[3]:
+                roomUrl[3] = str(random.randbytes(16).hex())
+            
+            config['room']['id'] = "/".join(roomUrl)
 
         return yaml.dump(config)
 
@@ -206,13 +227,26 @@ class Subscriptions:
             for tag in running_tags
         }
 
+        for tag, config in configs.items():
+            config_json = json.loads(config)
+            if config_json["auth"]["provider"] in ("telemost", "wbstream"):
+                room_exists = await RoomChecker.check_room_id(
+                    config_json["auth"]["provider"],
+                    config_json["room"]["id"],
+                    config_json["auth"].get("token", ""),
+                )
+
+                if not room_exists:
+                    container_name = f"olcwave-{tag}-{short_uuid}"
+                    OlcRTC.remove(container_name)
+
         profiles = {
             profile.tag: profile
             for profile in await Profiles.get_all()
         }
 
         for tag in profiles.keys() - configs.keys():
-            config = Subscriptions.profile_to_config(profiles[tag].profile)
+            config = await Subscriptions.profile_to_config(profiles[tag].profile)
             configs[tag] = config
 
             Containers.run(config, tag, short_uuid)
