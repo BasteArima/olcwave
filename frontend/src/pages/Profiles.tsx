@@ -544,6 +544,9 @@ function CreateProfileModal({ open, onClose }: { open: boolean; onClose: () => v
     setError('')
     setYamlResult(null)
     setTagResult(null)
+    setHelpOpen(false)
+    setAutogenOpen(false)
+    setExamplesOpen(false)
   }
 
   const helpBtnClass = `
@@ -749,6 +752,9 @@ function EditProfileModal({ profile, onClose }: { profile: Profile | null; onClo
       setConfig(stripProfileFields(profile.profile))
       setYamlResult(null)
       setError('')
+      setHelpOpen(false)
+      setAutogenOpen(false)
+      setExamplesOpen(false)
     }
   }, [profile])
 

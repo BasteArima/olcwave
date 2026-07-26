@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { useModalStack } from '../../hooks/useModalStack'
 
 interface ModalProps {
   open: boolean
@@ -12,16 +13,22 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, description, children, wide, headerAction }: ModalProps) {
+  const { register, unregister, isTop } = useModalStack()
+
   useEffect(() => {
     if (!open) return
-    document.body.style.overflow = 'hidden'
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const id = register()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isTop(id)) {
+        onClose()
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => {
-      document.body.style.overflow = ''
+      unregister(id)
       window.removeEventListener('keydown', onKey)
     }
-  }, [open, onClose])
+  }, [open, onClose, register, unregister, isTop])
 
   if (!open) return null
 

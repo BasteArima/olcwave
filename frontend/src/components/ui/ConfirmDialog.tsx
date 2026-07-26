@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import Button from './Button'
 import { useLanguage } from '../../i18n/useLanguage'
+import { useModalStack } from '../../hooks/useModalStack'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -17,12 +18,22 @@ export default function ConfirmDialog({
   open, onClose, onConfirm, title, message, confirmLabel, loading,
 }: ConfirmDialogProps) {
   const { t } = useLanguage()
+  const { register, unregister, isTop } = useModalStack()
+
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !loading && onClose()
+    const id = register()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading && isTop(id)) {
+        onClose()
+      }
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, loading, onClose])
+    return () => {
+      unregister(id)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open, loading, onClose, register, unregister, isTop])
 
   if (!open) return null
 
