@@ -92,7 +92,7 @@ class Subscriptions:
             config["room"]["id"] = generated_room_id
 
         if config["auth"]["provider"] == "telemost":
-            config["auth"].pop("token")
+            config["auth"].pop("token", None)
 
         if config["auth"]["provider"] == "jitsi":
             roomUrl: list[str] = config["room"]["id"].split("/")  # pyright: ignore[reportAny]
