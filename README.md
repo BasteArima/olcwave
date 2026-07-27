@@ -93,7 +93,7 @@ Frontend (React SPA)                /sub/{uuid}
 | [architecture.md](docs/architecture.md)       | Архитектура системы, потоки запросов, учёт трафика и Caddy |
 | [development.md](docs/development.md)         | Локальная разработка и рекомендации для участников проекта |
 | [troubleshooting.md](docs/troubleshooting.md) | Частые проблемы и способы их решения                       |
-| [subscription_page.md](docs/subscription_page.md) | Страница подписки для пользователей: UI, i18n, маршрутизация |
+| [subscription_page.md](docs/subscription_page.md) | Страница подписки для пользователей |
 
 ## Лицензия
 
