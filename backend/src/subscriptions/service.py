@@ -13,7 +13,7 @@ from rw.sdk import isUserValid
 from users.service import Users
 
 import yaml
-import random
+import secrets
 import emoji
 
 TRANSPORT_NAMES = {
@@ -74,7 +74,7 @@ class Subscriptions:
     @staticmethod
     async def profile_to_config(profile: str):
         config = yaml.safe_load(profile)  # pyright: ignore[reportAny]
-        config["crypto"]["key"] = random.randbytes(32).hex()
+        config["crypto"]["key"] = secrets.token_hex(32)
 
         if (
             config["auth"]["provider"] in ["telemost", "wbstream"] and
@@ -98,9 +98,9 @@ class Subscriptions:
             roomUrl: list[str] = config["room"]["id"].split("/")  # pyright: ignore[reportAny]
 
             if len(roomUrl) == 3:
-                roomUrl.append(str(random.randbytes(16).hex()))
+                roomUrl.append(str(secrets.token_hex(16)))
             elif len(roomUrl) == 4 and not roomUrl[3]:
-                roomUrl[3] = str(random.randbytes(16).hex())
+                roomUrl[3] = str(secrets.token_hex(16))
             
             config['room']['id'] = "/".join(roomUrl)
 
