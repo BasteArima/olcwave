@@ -1,3 +1,7 @@
+# Copyright (C) 2026 invdevv - https://github.com/invdevv
+# This file is part of olcwave.
+# OLCWave is free software licensed under AGPL-3.0.
+
 import asyncio
 
 from docker.errors import NotFound
