@@ -11,10 +11,8 @@ client = docker.from_env()
 class XrayCore:
     @staticmethod
     def run(xray_json: str):
-        name = f"olcwave-xraycore"
-
         try:
-            old = client.containers.get(name)
+            old = client.containers.get("olcwave-xraycore")
             old.remove(force=True)
         except Exception:
             pass

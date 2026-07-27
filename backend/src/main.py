@@ -1,11 +1,12 @@
 import asyncio
 
 from docker.errors import NotFound
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 import uvicorn
 
+from routing.service import Routing
 from settings.service import SettingsService
 from settings.router import router as settings_router
 from auth.router import router as auth_router
@@ -25,8 +26,12 @@ async def lifespan(app: FastAPI):
     await create_tables() # TODO: add alembic migrations
     await SettingsService.load()
 
-    if SettingsService.get().xray_routing_enabled:
-        XrayCore.start()
+    try:
+        routing = await Routing.get()
+    except HTTPException:
+        routing = False
+    if routing:
+        XrayCore.run(routing)
 
     SyncManager.start()
     task = asyncio.create_task(TrafficManager.run())
