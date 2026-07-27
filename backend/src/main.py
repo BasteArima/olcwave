@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     except NotFound:
         pass
 
-app = FastAPI(lifespan=lifespan)  # pyright: ignore[reportArgumentType]
+app = FastAPI(lifespan=lifespan, openapi_url="", docs_url="", redoc_url="")  # pyright: ignore[reportArgumentType]
 
 app.add_middleware(
     CORSMiddleware,
@@ -69,6 +69,9 @@ app.include_router(containers_router)
 app.include_router(settings_router)
 app.include_router(routing_router)
 
+@app.get("/health")
+async def healthcheck():
+    return "ok"
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0")

@@ -410,6 +410,13 @@ verify_stack() {
 
   success "API container is running."
   docker compose ps
+
+  until curl -sf https://${PANEL_DOMAIN}/api/health >/dev/null; do
+    info "waiting for api..."
+        sleep 2
+    done
+
+  success "API is ready"
 }
 
 # ---------------------------------------------------------------------------
