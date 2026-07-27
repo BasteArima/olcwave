@@ -131,6 +131,9 @@ build_xraycore(){
 
   docker build . --tag xraycore
 
+  docker run -d --name olcwave-xraycore xraycore
+  docker stop olcwave-xraycore
+
   cd ../..
 }
 
