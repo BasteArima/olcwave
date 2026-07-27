@@ -27,6 +27,7 @@ OLCWave хранит шаблоны конфигураций OLCRTC (`profiles`)
 **НЕ** рядом с remnawave
 
 ```bash
+apt update && apt install git
 cd /opt
 git clone https://github.com/invdevv/olcwave.git && cd olcwave
 
