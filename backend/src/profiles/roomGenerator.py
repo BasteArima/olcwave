@@ -128,4 +128,4 @@ class RoomChecker:
                 json = {}
             )
         
-        return "Такой встречи не существует" in res.text
+        return "Такой встречи не существует" not in res.text
