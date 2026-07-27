@@ -113,12 +113,7 @@ class Routing:
 
         await SettingsService.set(settings)
 
-        asyncio.create_task(
-            asyncio.to_thread(
-                XrayCore.run,
-                xray_json,
-            )
-        )
+        XrayCore.run(xray_json)
 
         asyncio.create_task(Routing.restart_all_with_proxy())
 
@@ -141,15 +136,8 @@ class Routing:
         async with async_session_factory() as db:  
             _= await RoutingDB.update(db, xray_json) 
 
-        asyncio.create_task(
-            asyncio.to_thread(
-                XrayCore.run,
-                xray_json,
-            )
-        )
+        XrayCore.run(xray_json)
 
-        asyncio.create_task(Routing.restart_all_with_proxy())
-        
         return xray_json
 
 
@@ -164,11 +152,7 @@ class Routing:
         
         await SettingsService.set(settings)
 
-        asyncio.create_task(
-            asyncio.to_thread(
-                XrayCore.stop
-            )
-        )
+        XrayCore.stop()
 
         asyncio.create_task(Routing.restart_all_with_proxy())
 
