@@ -11,7 +11,7 @@ services:
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./frontend/dist:/srv/frontend/dist:ro
-      - ./subscriptionPage/dist:/srv/subscriptionPage:ro
+      - ./subscriptionPage/dist:/srv/subscriptionPage/dist:ro
 
     networks:
       - app
