@@ -128,5 +128,4 @@ class RoomChecker:
                 json = {}
             )
         
-        print(res.json()["uri"].split("/")[-1])
-        return res.json()["uri"].split("/")[-1]
+        return "Такой встречи не существует" in res.text
