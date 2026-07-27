@@ -45,9 +45,14 @@ function usePlatform() {
 
 function useToast() {
   const [message, setMessage] = useState<string | null>(null)
+  const timerRef = useState(() => ({ current: undefined as ReturnType<typeof setTimeout> | undefined }))[0]
+
+  useEffect(() => () => { clearTimeout(timerRef.current) }, [])
+
   const show = (msg: string) => {
+    clearTimeout(timerRef.current)
     setMessage(msg)
-    setTimeout(() => setMessage(null), 2500)
+    timerRef.current = setTimeout(() => setMessage(null), 2500)
   }
   return { message, show }
 }
@@ -70,13 +75,11 @@ function useProviderName(): string | null {
 
   useEffect(() => {
     if (!subId) return
-    fetch(`/${subId}/raw`)
+    fetch(`/${subId}/check`)
       .then((r) => r.ok ? r.text() : null)
       .then((text) => {
         if (!text) return
-        const firstLine = text.split('\n')[0]
-        const m = firstLine.match(/^#name:\s*(.+)$/)
-        if (m) setName(m[1].trim())
+        setName(text)
       })
       .catch(() => {})
   }, [subId])
@@ -88,6 +91,7 @@ export default function App() {
   const ios = useIOSCheck()
   const toast = useToast()
   const currentUrl = useCurrentUrl()
+  const providerName = useProviderName()
   const [showMain, setShowMain] = useState(false)
 
   if (ios && !showMain) {
@@ -97,7 +101,7 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <LanguageSwitcher />
-      <Hero />
+      <Hero providerName={providerName} />
       <main className="max-w-3xl mx-auto px-5 pb-16 space-y-6">
         <DownloadSection />
         <SubscribeSection url={currentUrl} showToast={toast.show} />
@@ -185,9 +189,8 @@ function Toast({ message }: { message: string | null }) {
 
 /* ─── Hero ─── */
 
-function Hero() {
+function Hero({ providerName }: { providerName: string | null }) {
   const { t } = useLanguage()
-  const providerName = useProviderName()
   return (
     <header className="relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none"
@@ -359,13 +362,12 @@ function TipsSection() {
 
 function Footer() {
   const { t } = useLanguage()
-  const providerName = useProviderName()
   return (
     <footer className="border-t border-border">
       <div className="max-w-3xl mx-auto px-5 py-8 text-center space-y-2">
         <div className="flex items-center justify-center gap-2 text-text-muted">
           <WavesIcon className="w-4 h-4" />
-          <span className="text-xs font-medium">{providerName || 'OLCWave'}</span>
+          <span className="text-xs font-medium">OLCWave</span>
         </div>
         <p className="text-xs text-text-muted">
           {t('footerTagline')}

@@ -10,6 +10,8 @@ services:
 
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
       - ./frontend/dist:/srv/frontend/dist:ro
       - ./subscriptionPage/dist:/srv/subscriptionPage/dist:ro
 
@@ -71,3 +73,5 @@ networks:
 
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
