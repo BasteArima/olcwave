@@ -50,6 +50,14 @@ class XrayCore:
         return client.containers.get("olcwave-xraycore")
 
     @staticmethod
+    def is_running() -> bool:
+        try:
+            container = client.containers.get("olcwave-xraycore")
+            return container.status == "running"
+        except NotFound:
+            return False
+
+    @staticmethod
     def get_geoip() -> bytes:
         container = client.containers.get("olcwave-xraycore")
 

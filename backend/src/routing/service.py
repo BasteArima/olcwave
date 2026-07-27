@@ -1,11 +1,10 @@
 import asyncio
-from fastapi.exceptions import HTTPException
 
+from docker.errors import NotFound
 from fastapi import HTTPException
 
 import json
 
-from settings.service import SettingsService
 from xraycore.sdk import XrayCore
 from database import async_session_factory
 from routing.db import RoutingDB
@@ -136,7 +135,10 @@ class Routing:
         async with async_session_factory() as db:  
             _=await RoutingDB.delete(db)
 
-        XrayCore.stop()
+        try:
+            XrayCore.stop()
+        except NotFound:
+            pass
 
         asyncio.create_task(Routing.restart_all_with_proxy())
 
