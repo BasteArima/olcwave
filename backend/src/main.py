@@ -4,7 +4,7 @@
 
 import asyncio
 
-from docker.errors import NotFound
+from aiodocker import DockerError
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     except HTTPException:
         routing = False
     if routing:
-        XrayCore.run(routing)
+        await XrayCore.run(routing)
 
     SyncManager.start()
     task = asyncio.create_task(TrafficManager.run())
@@ -47,8 +47,8 @@ async def lifespan(app: FastAPI):
         pass
     await SyncManager.stop()
     try:
-        XrayCore.stop()
-    except NotFound:
+        await XrayCore.stop()
+    except DockerError:
         pass
 
 app = FastAPI(lifespan=lifespan, openapi_url="", docs_url="", redoc_url="")  # pyright: ignore[reportArgumentType]
