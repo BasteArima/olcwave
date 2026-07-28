@@ -24,10 +24,11 @@ from config import settings
 from database import create_tables
 from traffic import TrafficManager
 from rw_sync import SyncManager
-from docker_client import docker
+from docker_client import init_docker, close_docker
 
 async def lifespan(app: FastAPI):
     await create_tables() # TODO: add alembic migrations
+    await init_docker()
     await SettingsService.load()
 
     try:
@@ -50,7 +51,7 @@ async def lifespan(app: FastAPI):
         await XrayCore.stop()
     except DockerError:
         pass
-    await docker.close()
+    await close_docker()
 
 app = FastAPI(lifespan=lifespan, openapi_url="", docs_url="", redoc_url="")  # pyright: ignore[reportArgumentType]
 

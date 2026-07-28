@@ -1,11 +1,13 @@
+from aiodocker.stream import Message
 import json
-from docker_client import docker
+import docker_client
 from aiodocker import DockerError
 from aiodocker.containers import DockerContainer
 
 class OlcRTC:
     @staticmethod
     async def build(rebuild: bool = False):
+        docker = docker_client.docker
         if not rebuild:
             try:
                 _=await docker.images.get("olcrtc")
@@ -29,6 +31,7 @@ class OlcRTC:
         upstream_proxy_user: str = "",
         upstream_proxy_pass: str = ""
     ):
+        docker = docker_client.docker
         name = f"olcwave-{config_tag}-{user_id}"
 
         try:
@@ -61,12 +64,14 @@ class OlcRTC:
 
     @staticmethod
     async def start(name: str):
+        docker = docker_client.docker
         container = await docker.containers.get(name)
         await container.start()
 
 
     @staticmethod
     async def stop(name: str):
+        docker = docker_client.docker
         container = await docker.containers.get(name)
         await container.stop()
 
@@ -77,6 +82,7 @@ class OlcRTC:
         upstream_proxy_user: str = "",
         upstream_proxy_pass: str = "",
     ):
+        docker = docker_client.docker
         container = await docker.containers.get(name)
 
         info = await container.show()
@@ -115,43 +121,49 @@ class OlcRTC:
 
     @staticmethod
     async def remove(name: str):
+        docker = docker_client.docker
         container = await docker.containers.get(name)
         await container.delete(force=True)
 
     @staticmethod
     async def logs(name: str) -> str:
+        docker = docker_client.docker
         container = await docker.containers.get(name)
         logs = await container.log(stdout=True, stderr=True)
         return "".join(logs)
 
     @staticmethod
     async def get(name: str) -> DockerContainer:
+        docker = docker_client.docker
         return await docker.containers.get(name)
 
     @staticmethod
     async def all(include_stopped: bool = False) -> list[DockerContainer]:
+        docker = docker_client.docker
         return await docker.containers.list(all=include_stopped)  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
 
     @staticmethod
     async def get_config(name: str):
+        docker = docker_client.docker
         container = await docker.containers.get(name)
 
         exec_ = await container.exec(cmd=["cat", "/tmp/olcwave/config.yaml"])
-
-        config = await exec_.start(detach=False)
-        return config
+        stream = exec_.start(detach=False)
+        config = await stream.read_out()
+        return config.data.decode().strip()
 
     @staticmethod
     async def get_stats(name: str) -> dict:  # pyright: ignore[reportUnknownParameterType]
+        docker = docker_client.docker
         container = await docker.containers.get(name)
 
         exec_ = await container.exec(
             cmd=["cat", "/tmp/olcwave/stats.json"]
         )
+        stream = exec_.start(detach=False)
+        result = await stream.read_out()
 
-        result = await exec_.start(detach=False)
-
-        raw = result.decode().strip()
+        raw = result.data.decode().strip()
 
         if not raw:
             return {}

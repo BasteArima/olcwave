@@ -1,7 +1,7 @@
 import io
 import tarfile
 
-from docker_client import docker
+import docker_client
 from aiodocker import DockerError
 from aiodocker.containers import DockerContainer
 
@@ -11,6 +11,7 @@ class XrayCore:
 
     @staticmethod
     async def run(xray_json: str) -> DockerContainer:
+        docker = docker_client.docker
         try:
             old = await docker.containers.get(XrayCore.CONTAINER_NAME)
             await old.delete(force=True)
@@ -53,6 +54,7 @@ class XrayCore:
 
     @staticmethod
     async def start() -> None:
+        docker = docker_client.docker
         try:
             container = await docker.containers.get(XrayCore.CONTAINER_NAME)
             await container.start()
@@ -61,21 +63,25 @@ class XrayCore:
 
     @staticmethod
     async def stop() -> None:
+        docker = docker_client.docker
         container = await docker.containers.get(XrayCore.CONTAINER_NAME)
         await container.stop()
 
     @staticmethod
     async def logs() -> str:
+        docker = docker_client.docker
         container = await docker.containers.get(XrayCore.CONTAINER_NAME)
         logs = await container.log(stdout=True, stderr=True)
         return "".join(logs)
 
     @staticmethod
     async def get() -> DockerContainer:
+        docker = docker_client.docker
         return await docker.containers.get(XrayCore.CONTAINER_NAME)
 
     @staticmethod
     async def is_running() -> bool:
+        docker = docker_client.docker
         try:
             container = await docker.containers.get(XrayCore.CONTAINER_NAME)
             info = await container.show()
@@ -85,6 +91,7 @@ class XrayCore:
 
     @staticmethod
     async def _get_archive(path: str) -> bytes:
+        docker = docker_client.docker
         async with docker._query(
             f"containers/{XrayCore.CONTAINER_NAME}/archive",
             method="GET",

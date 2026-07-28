@@ -26,7 +26,6 @@ class TrafficManager:
         seen: set[str] = set()
 
         containers = await OlcRTC.all(include_stopped=False)
-
         for cont in containers:
             info = await cont.show()
 
@@ -93,7 +92,6 @@ class TrafficManager:
     @staticmethod
     async def _tick():
         deltas = await TrafficManager._collect_deltas()
-
         for short_uuid, delta in deltas.items():
             try:
                 await Users.add_traffic_used(short_uuid, delta)

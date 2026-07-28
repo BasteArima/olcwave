@@ -162,7 +162,7 @@ class Routing:
         await XrayCore.run(xray_json)
 
         asyncio.create_task(
-            Routing.restart_all_with_proxy()
+            Routing.restart_all("host.docker.internal:10808")
         )
 
         return xray_json
@@ -187,7 +187,7 @@ class Routing:
         await XrayCore.run(xray_json)
 
         asyncio.create_task(
-            Routing.restart_all_with_proxy()
+            Routing.restart_all("host.docker.internal:10808")
         )
 
         return xray_json
@@ -203,7 +203,7 @@ class Routing:
             pass
 
         asyncio.create_task(
-            Routing.restart_all_with_proxy()
+            Routing.restart_all()
         )
 
     @staticmethod
@@ -234,7 +234,7 @@ class Routing:
         }
 
     @staticmethod
-    async def restart_all_with_proxy():
+    async def restart_all(upstream_proxy_addr: str = ""):
         from olcrtc.service import Containers
 
         sem = asyncio.Semaphore(10)
@@ -243,9 +243,7 @@ class Routing:
             async with sem:
                 await Containers.restart(
                     container.name,
-                    upstream_proxy_addr=(
-                        "host.docker.internal:10808"
-                    ),
+                    upstream_proxy_addr = upstream_proxy_addr
                 )
 
         containers = await Containers.all()
