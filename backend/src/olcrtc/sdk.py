@@ -1,10 +1,7 @@
 import json
-import aiodocker
-from aiodocker import Docker, DockerError
+from docker_client import docker
+from aiodocker import DockerError
 from aiodocker.containers import DockerContainer
-
-docker = aiodocker.Docker()
-
 
 class OlcRTC:
     @staticmethod

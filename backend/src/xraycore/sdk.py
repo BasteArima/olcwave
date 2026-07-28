@@ -1,12 +1,9 @@
 import io
 import tarfile
 
-import aiodocker
+from docker_client import docker
 from aiodocker import DockerError
 from aiodocker.containers import DockerContainer
-from aiohttp import ClientResponse
-
-docker = aiodocker.Docker()
 
 
 class XrayCore:
@@ -93,11 +90,7 @@ class XrayCore:
             method="GET",
             params={"path": path},
         ) as response:
-
-            try:
-                archive = await response.read()
-            finally:
-                response.release()
+            archive = await response.read()    
 
             with tarfile.open(fileobj=io.BytesIO(archive), mode="r:*") as tar:
                 member = tar.getmembers()[0]

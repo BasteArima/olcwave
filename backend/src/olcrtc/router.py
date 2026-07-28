@@ -40,7 +40,7 @@ async def stop(name: str, _admin: dict = Depends(get_current_admin)):
 @router.post("/restart")
 async def restart(name: str, _admin: dict = Depends(get_current_admin)):
     if await XrayCore.is_running():
-        await Containers.restart(name, f"host.docker.internal:10808")
+        await Containers.restart(name, "host.docker.internal:10808")
     else:
         await Containers.restart(name)
 
