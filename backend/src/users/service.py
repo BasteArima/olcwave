@@ -1,8 +1,8 @@
 import asyncio
 from datetime import datetime, timezone
 
+from config import settings
 from settings.service import SettingsService
-from rw.sdk import getAllUsers, isUserValid
 from database import async_session_factory
 from users.db import UserDB
 from users.schemas import UserSchema, TrafficInfoSchema
@@ -74,6 +74,11 @@ class Users:
 
     @staticmethod
     async def sync_with_remnawave():
+        if not settings.RW_ENABLED:
+            raise RuntimeError("Remnawave is not enabled")
+
+        from rw.sdk import getAllUsers, isUserValid
+
         rw_users = await getAllUsers()
         db_users = await Users.get_all()
 
@@ -121,9 +126,9 @@ class Users:
                             "expires_at": rw_user.expire_at,
                         }
                     )
-                    
+
                     await Users.update(updated_user)
-                    
+
                     updated += 1
 
         for short_uuid in db_map:

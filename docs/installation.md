@@ -5,7 +5,7 @@
 * Linux-сервер (любой современный дистрибутив). Примеры ниже используют `apt` для Debian/Ubuntu.
 * **Docker** и **плагин Docker Compose**.
 * **Node.js 20+ / npm** - frontend собирается на хосте, а не внутри Docker.
-* Рабочий экземпляр **Remnawave** и API-токен для него.
+* Для интеграции с Remnawave: рабочий экземпляр **Remnawave** и API-токен для него (опционально — можно работать в автономном режиме).
 * Для production: **домен** (два имени, например `olcwave.example.org` и `olcsub.example.org`), указывающий на сервер. Caddy автоматически получает для них HTTPS-сертификаты.
 
 API-контейнер взаимодействует с Docker daemon хоста через:
@@ -89,12 +89,21 @@ nano backend/.env
 
 Все переменные описаны в [configuration.md](configuration.md).
 
+Выберите режим работы:
+
+```ini
+# Автономный режим (без Remnawave)
+RW_ENABLED=false
+
+# Интеграция с Remnawave
+# RW_ENABLED=true
+# RW_API_URL=https://your-remnawave-host
+# RW_API_TOKEN=...
+```
+
 Переменные, которые **обязательно нужно изменить перед первым запуском**:
 
 ```ini
-RW_API_URL=https://your-remnawave-host        # базовый URL API Remnawave
-RW_API_TOKEN=...                              # API-токен Remnawave
-RW_CADDY_TOKEN=                               # токен Caddy (оставьте пустым, если не используется)
 POSTGRES_PASSWORD=<something strong>
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=<something strong>

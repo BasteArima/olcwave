@@ -2,6 +2,9 @@ const translations = {
   appName: 'OLC Wave',
   adminPanel: 'Admin Panel',
 
+  rwModeEnabled: 'Use Remnawave',
+  rwModeDisabled: 'Use local users',
+
   navDashboard: 'Dashboard',
   navUsers: 'Users',
   navProfiles: 'Profiles',
@@ -131,6 +134,12 @@ const translations = {
   failedToDeleteUser: 'Failed to delete user',
 
   failedToLoadTraffic: 'Failed to load traffic',
+
+  addUser: 'Add user',
+  createUser: 'Create User',
+  createUserButton: 'Create User',
+  userCreated: 'User created',
+  failedToCreateUser: 'Failed to create user',
 
   filterProfiles: 'Filter profiles...',
   nProfiles: '{n} profiles',

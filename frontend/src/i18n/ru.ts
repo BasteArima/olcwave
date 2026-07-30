@@ -4,6 +4,9 @@ const ru: Translation = {
   appName: 'OLC Wave',
   adminPanel: 'Панель управления',
 
+  rwModeEnabled: 'Используется Remnawave',
+  rwModeDisabled: 'Используются локальные пользователи',
+
   navDashboard: 'Дашборд',
   navUsers: 'Пользователи',
   navProfiles: 'Профили',
@@ -133,6 +136,12 @@ const ru: Translation = {
   failedToDeleteUser: 'Ошибка удаления пользователя',
 
   failedToLoadTraffic: 'Ошибка загрузки трафика',
+
+  addUser: 'Добавить пользователя',
+  createUser: 'Создать пользователя',
+  createUserButton: 'Создать',
+  userCreated: 'Пользователь создан',
+  failedToCreateUser: 'Ошибка создания пользователя',
 
   filterProfiles: 'Фильтр профилей...',
   nProfiles: '{n} профилей',

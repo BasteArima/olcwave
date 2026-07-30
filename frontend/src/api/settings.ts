@@ -15,4 +15,7 @@ export const settingsApi = {
 
   update: (data: RuntimeSettings) =>
     api.put<RuntimeSettings>('/settings/', data),
+
+  getRwEnabled: () =>
+    api.get<boolean>('/settings/rw_enabled').then((r) => r.data),
 }

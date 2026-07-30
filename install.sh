@@ -258,11 +258,24 @@ collect_input() {
   info "Configuration - answer the prompts below."
   printf '\n' > /dev/tty
 
-  ask_required RW_DOMAIN "Remnawave domain (e.g. remnawave.example.com)"
-  RW_API_URL="https://${RW_DOMAIN}"
+  if confirm "Enable Remnawave integration?"; then
+    RW_ENABLED=True
 
-  ask_required RW_API_TOKEN "Remnawave API token"
-  ask RW_CADDY_TOKEN "Caddy Auth token (Leave blank if you dont use it)" ""
+    ask_required RW_DOMAIN "Remnawave domain (e.g. remnawave.example.com)"
+    RW_API_URL="https://${RW_DOMAIN}"
+
+    ask_required RW_API_TOKEN "Remnawave API token"
+    ask RW_CADDY_TOKEN "Caddy Auth token (Leave blank if you dont use it)" ""
+
+    ask RW_SQUAD_NAME "Restrict to a specific Remnawave squad (name or UUID, leave empty to skip)" ""
+  else
+    RW_ENABLED=False
+    RW_API_URL=""
+    RW_API_TOKEN=""
+    RW_CADDY_TOKEN=""
+    RW_SQUAD_NAME=""
+    info "Remnawave integration disabled - users will be created locally via the panel."
+  fi
 
   ask ADMIN_USERNAME "Admin username" "admin"
 
@@ -277,8 +290,6 @@ collect_input() {
 
   ask SUB_DOMAIN "Subscription domain (e.g. sub.example.com)" "olcsub.${ROOT_DOMAIN}"
   SUB_URL_TEMPLATE="https://${SUB_DOMAIN}/{uuid}"
-
-  ask RW_SQUAD_NAME "Restrict to a specific Remnawave squad (name or UUID, leave empty to skip)" ""
 
   POSTGRES_USER="olcwave"
   POSTGRES_DB="main"
@@ -301,10 +312,14 @@ write_backend_env() {
   may_overwrite "backend/.env" || return 0
   # printf '%s' keeps values verbatim (safe for passwords with special chars).
   {
-    printf 'RW_API_URL=%s\n'                 "$RW_API_URL"
-    printf 'RW_API_TOKEN=%s\n\n'             "$RW_API_TOKEN"
-    printf 'RW_CADDY_TOKEN=%s\n\n'           "$RW_CADDY_TOKEN"
-    printf 'DB_HOST=postgres\n'
+    printf 'RW_ENABLED=%s\n'                 "$RW_ENABLED"
+    if [ "$RW_ENABLED" = "true" ]; then
+      printf 'RW_API_URL=%s\n'               "$RW_API_URL"
+      printf 'RW_API_TOKEN=%s\n'             "$RW_API_TOKEN"
+      printf 'RW_CADDY_TOKEN=%s\n'           "$RW_CADDY_TOKEN"
+      printf 'RW_SQUAD_NAME=%s\n'            "$RW_SQUAD_NAME"
+    fi
+    printf '\nDB_HOST=postgres\n'
     printf 'DB_PORT=5432\n'
     printf 'POSTGRES_USER=%s\n'              "$POSTGRES_USER"
     printf 'POSTGRES_PASSWORD=%s\n'          "$POSTGRES_PASSWORD"
@@ -312,8 +327,7 @@ write_backend_env() {
     printf 'ADMIN_USERNAME=%s\n'             "$ADMIN_USERNAME"
     printf 'ADMIN_PASSWORD=%s\n\n'           "$ADMIN_PASSWORD"
     printf 'JWT_SECRET_KEY=%s\n'             "$JWT_SECRET_KEY"
-    printf 'JWT_EXPIRE_MINUTES=1440\n\n'
-    printf 'RW_SQUAD_NAME=%s\n'              "$RW_SQUAD_NAME"
+    printf 'JWT_EXPIRE_MINUTES=1440\n'
   } > backend/.env
   success "Wrote backend/.env"
 }

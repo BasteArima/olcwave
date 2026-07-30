@@ -13,7 +13,20 @@
 
 Определяется и проверяется в `backend/src/config.py`. Если обязательная переменная отсутствует, backend не запустится.
 
-### `RW_API_URL`
+### `RW_ENABLED`
+
+```ini
+RW_ENABLED=false
+```
+
+Включает или отключает интеграцию с Remnawave.
+
+- `false` — полностью автономный режим. Пользователи создаются локально через панель. RW-переменные ниже не используются.
+- `true` — требуется работающий инстанс Remnawave. Пользователи и подписки синхронизируются с Remnawave.
+
+---
+
+### `RW_API_URL` (требуется при `RW_ENABLED=true`)
 
 ```ini
 RW_API_URL=https://remnawave.example.org
@@ -29,7 +42,7 @@ Backend обращается к нему для проверки, являетс
 
 ---
 
-### `RW_API_TOKEN`
+### `RW_API_TOKEN` (требуется при `RW_ENABLED=true`)
 
 ```ini
 RW_API_TOKEN=ey...
@@ -45,7 +58,7 @@ API-токен для Remnawave.
 
 ---
 
-### `RW_CADDY_TOKEN` (опционально)
+### `RW_CADDY_TOKEN` (опционально, только при `RW_ENABLED=true`)
 
 ```ini
 RW_CADDY_TOKEN=
@@ -163,7 +176,7 @@ JWT_EXPIRE_MINUTES=1440
 
 ---
 
-### `RW_SQUAD_NAME` (опционально)
+### `RW_SQUAD_NAME` (опционально, только при `RW_ENABLED=true`)
 
 ```ini
 RW_SQUAD_NAME=
@@ -277,8 +290,7 @@ VITE_SUB_URL_TEMPLATE=https://olcsub.example.org/{uuid}
 | `sub_update_interval`        | `1h`         | Интервал обновления подписки клиентом (формат: `<число>m/h/d`)        |
 | `default_traffic_limit`      | 100 GB       | Лимит трафика по умолчанию для новых пользователей (в байтах)         |
 | `traffic_collect_interval`   | 10           | Интервал сбора статистики трафика из контейнеров (в секундах)          |
-| `sync_interval`              | `4h`         | Интервал автосинхронизации пользователей с Remnawave (формат: `<число>m/h`, секунды не поддерживаются) |
+| `sync_interval`              | `4h`         | Интервал автосинхронизации пользователей с Remnawave (только при `RW_ENABLED=true`) |
 | `last_sync_at`               | `null`       | Время последней синхронизации с Remnawave (только чтение)             |
-| `xray_routing_enabled`       | `false`      | Включён ли XrayCore routing (управляется через страницу Routing)      |
 
 Подробнее о настройках подписок и синхронизации см. соответствующие разделы документации.

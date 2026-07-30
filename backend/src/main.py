@@ -26,8 +26,9 @@ from traffic import TrafficManager
 from rw_sync import SyncManager
 from docker_client import init_docker, close_docker
 
+
 async def lifespan(app: FastAPI):
-    await create_tables() # TODO: add alembic migrations
+    await create_tables()
     await init_docker()
     await SettingsService.load()
 
@@ -38,20 +39,28 @@ async def lifespan(app: FastAPI):
     if routing:
         await XrayCore.run(routing)
 
-    SyncManager.start()
-    task = asyncio.create_task(TrafficManager.run())
+    if settings.RW_ENABLED:
+        SyncManager.start()
+
+    traffic_task = asyncio.create_task(TrafficManager.run())
+
     yield
-    task.cancel()
+
+    traffic_task.cancel()
     try:
-        await task
+        await traffic_task
     except asyncio.CancelledError:
         pass
-    await SyncManager.stop()
+
+    if settings.RW_ENABLED:
+        await SyncManager.stop()
+
     try:
         await XrayCore.stop()
     except DockerError:
         pass
     await close_docker()
+
 
 app = FastAPI(lifespan=lifespan, openapi_url="", docs_url="", redoc_url="")  # pyright: ignore[reportArgumentType]
 
@@ -71,9 +80,11 @@ app.include_router(containers_router)
 app.include_router(settings_router)
 app.include_router(routing_router)
 
+
 @app.get("/health")
 async def healthcheck():
     return "ok"
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0")

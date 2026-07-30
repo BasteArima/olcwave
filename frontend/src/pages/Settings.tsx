@@ -66,6 +66,12 @@ export default function Settings() {
   const { toasts, dismiss, success, error: toastError } = useToasts()
   const queryClient = useQueryClient()
 
+  const { data: rwEnabled } = useQuery({
+    queryKey: ['rw-enabled'],
+    queryFn: () => settingsApi.getRwEnabled(),
+    staleTime: Infinity,
+  })
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
     queryFn: () => settingsApi.get().then((r) => r.data),
@@ -188,42 +194,44 @@ export default function Settings() {
         </div>
       </Card>
 
-      <Card>
-        <CardHeader title={t('remnawaveSync')} />
-        <div className="px-5 py-4 space-y-4">
-          <Select
-            label={t('autoSyncUsers')}
-            options={RW_SYNC_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
-            value={syncMode}
-            onChange={(e) => handleSyncSelect(e.target.value)}
-            disabled={isLoading}
-          />
-          {isCustom && (
-            <Input
-              label={t('customInterval')}
-              value={customSync}
-              onChange={(e) => setCustomSync(e.target.value)}
-              placeholder="e.g. 10m"
-              error={syncError}
-              hint={t('customIntervalHint')}
+      {rwEnabled === true && (
+        <Card>
+          <CardHeader title={t('remnawaveSync')} />
+          <div className="px-5 py-4 space-y-4">
+            <Select
+              label={t('autoSyncUsers')}
+              options={RW_SYNC_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+              value={syncMode}
+              onChange={(e) => handleSyncSelect(e.target.value)}
               disabled={isLoading}
             />
-          )}
-          <div className="flex items-center justify-between gap-4 py-2 border-t border-border">
-            <span className="text-xs text-text-muted">{t('lastSync')}</span>
-            <span className="text-xs text-text-primary tabular-nums">{formatDatetime(lastSyncAt)}</span>
+            {isCustom && (
+              <Input
+                label={t('customInterval')}
+                value={customSync}
+                onChange={(e) => setCustomSync(e.target.value)}
+                placeholder="e.g. 10m"
+                error={syncError}
+                hint={t('customIntervalHint')}
+                disabled={isLoading}
+              />
+            )}
+            <div className="flex items-center justify-between gap-4 py-2 border-t border-border">
+              <span className="text-xs text-text-muted">{t('lastSync')}</span>
+              <span className="text-xs text-text-primary tabular-nums">{formatDatetime(lastSyncAt)}</span>
+            </div>
+            <div className="flex justify-end pt-1">
+              <Button
+                onClick={handleSave}
+                loading={saveMutation.isPending}
+                disabled={isLoading || !!syncError}
+              >
+                {t('saveSettings')}
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-end pt-1">
-            <Button
-              onClick={handleSave}
-              loading={saveMutation.isPending}
-              disabled={isLoading || !!syncError}
-            >
-              {t('saveSettings')}
-            </Button>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       <Card className="border-danger/20">
         <div className="px-5 py-3.5 border-b border-danger/20 flex items-center gap-2">

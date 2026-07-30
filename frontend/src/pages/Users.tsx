@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usersApi } from '../api/users'
+import { settingsApi } from '../api/settings'
 import type { User, SyncResult } from '../types'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -23,16 +24,31 @@ import {
   ClipboardDocumentIcon,
   CheckIcon,
   LinkIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
+
+function generateShortUuid(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('')
+}
 
 export default function Users() {
   const { t } = useLanguage()
   const [search, setSearch] = useState('')
   const [editUser, setEditUser] = useState<User | null>(null)
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
   const [refreshMs, setRefreshMs] = useAutoRefresh('users')
   const { toasts, dismiss, success, error: toastError } = useToasts()
   const queryClient = useQueryClient()
+
+  const { data: rwEnabled } = useQuery({
+    queryKey: ['rw-enabled'],
+    queryFn: () => settingsApi.getRwEnabled(),
+    staleTime: Infinity,
+  })
 
   const { data: users, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['users-all'],
@@ -91,10 +107,18 @@ export default function Users() {
         </div>
         <span className="text-xs text-text-muted tabular-nums">{t('nUsers', { n: filtered.length })}</span>
         <AutoRefreshSelect value={refreshMs} onChange={setRefreshMs} />
-        <Button variant="secondary" onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} disabled={syncMutation.isPending}>
-          <ArrowPathIcon className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-          {t('syncWithRemnawave')}
-        </Button>
+        {rwEnabled === true && (
+          <Button variant="secondary" onClick={() => syncMutation.mutate()} loading={syncMutation.isPending} disabled={syncMutation.isPending}>
+            <ArrowPathIcon className={`w-4 h-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+            {t('syncWithRemnawave')}
+          </Button>
+        )}
+        {rwEnabled === false && (
+          <Button variant="primary" onClick={() => setShowCreate(true)}>
+            <PlusIcon className="w-4 h-4" />
+            {t('addUser')}
+          </Button>
+        )}
         <Button variant="secondary" onClick={() => refetch()}>
           <ArrowPathIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           {t('refresh')}
@@ -161,6 +185,16 @@ export default function Users() {
         </Card>
       )}
 
+      <UserCreateModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={() => {
+          setShowCreate(false)
+          queryClient.invalidateQueries({ queryKey: ['users-all'] })
+        }}
+        onToast={success}
+        onError={toastError}
+      />
       <UserEditModal
         user={editUser}
         onClose={() => setEditUser(null)}
@@ -313,6 +347,119 @@ function UserRow({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{children}</p>
+}
+
+function UserCreateModal({
+  open,
+  onClose,
+  onCreated,
+  onToast,
+  onError,
+}: {
+  open: boolean
+  onClose: () => void
+  onCreated: () => void
+  onToast: (message: string) => void
+  onError: (message: string) => void
+}) {
+  const { t } = useLanguage()
+  const queryClient = useQueryClient()
+  const [name, setName] = useState('')
+  const [expiry, setExpiry] = useState('')
+  const [limitGb, setLimitGb] = useState('')
+  const [unlimited, setUnlimited] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setName('')
+      setExpiry('')
+      setLimitGb('')
+      setUnlimited(false)
+    }
+  }, [open])
+
+  const errMsg = (err: unknown, fallback: string) =>
+    (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || fallback
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const bytes = unlimited ? 0 : gbToBytes(parseFloat(limitGb) || 0)
+      const shortUuid = generateShortUuid()
+      await usersApi.create({
+        short_uuid: shortUuid,
+        name: name || null,
+        expires_at: new Date(expiry || Date.now() + 365 * 86400000).toISOString(),
+        traffic_limit_bytes: bytes,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-all'] })
+      onToast(t('userCreated'))
+      onCreated()
+    },
+    onError: (err) => onError(errMsg(err, t('failedToCreateUser'))),
+  })
+
+  return (
+    <Modal open={open} onClose={onClose} title={t('createUser')} wide>
+      <div className="space-y-5">
+        <div className="space-y-2.5">
+          <SectionLabel>{t('userInformation')}</SectionLabel>
+          <div className="bg-bg-tertiary border border-border rounded-lg p-3.5 space-y-3">
+            <Input
+              label={t('username')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('displayName')}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2.5">
+          <SectionLabel>{t('trafficSettings')}</SectionLabel>
+          <div className="bg-bg-tertiary border border-border rounded-lg p-3.5 space-y-3">
+            <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={unlimited}
+                onChange={(e) => setUnlimited(e.target.checked)}
+                className="accent-accent w-4 h-4 cursor-pointer"
+              />
+              {t('unlimitedTraffic')}
+            </label>
+            {!unlimited && (
+              <Input
+                label={t('trafficLimitGb')}
+                type="number"
+                min="0"
+                step="0.1"
+                value={limitGb}
+                onChange={(e) => setLimitGb(e.target.value)}
+                placeholder={t('trafficLimitPlaceholder')}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2.5">
+          <SectionLabel>{t('timeSettings')}</SectionLabel>
+          <Input
+            label={t('expiresAt')}
+            type="datetime-local"
+            value={expiry}
+            onChange={(e) => setExpiry(e.target.value)}
+          />
+        </div>
+
+        <div className="border-t border-border pt-4 flex items-center justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>{t('cancel')}</Button>
+          <Button loading={createMutation.isPending} onClick={() => createMutation.mutate()}>
+            {t('createUserButton')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
 }
 
 function UserEditModal({
@@ -553,5 +700,3 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
     </div>
   )
 }
-
-

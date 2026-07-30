@@ -1,19 +1,19 @@
 import asyncio
 import secrets
+from typing import Any
 
 import emoji
 import yaml
 
 from fastapi import Response
-from remnawave.models import SubscriptionInfoResponseDto
 
+from config import settings
 from settings.service import SettingsService
 from users.schemas import TrafficInfoSchema, UserSchema
 from olcrtc.sdk import OlcRTC
 from profiles.roomGenerator import RoomChecker, RoomGenerator
 from profiles.service import Containers
 from profiles.service import Profiles
-from rw.sdk import isUserValid
 from users.service import Users
 
 
@@ -199,11 +199,7 @@ class Subscriptions:
         return txt
 
     @staticmethod
-    async def validate_user(short_uuid: str):
-        rw_user = await isUserValid(short_uuid)
-        if rw_user:
-            return rw_user
-
+    async def _cleanup_user_containers(short_uuid: str):
         for container in await OlcRTC.all(True):
             info = await container.show()
             name = info["Name"].lstrip("/")
@@ -214,13 +210,16 @@ class Subscriptions:
             ):
                 await OlcRTC.remove(name)
 
-        return Response(status_code=404)
+    @staticmethod
+    async def _validate_rw_user(short_uuid: str) -> Any | None:
+        from rw.sdk import isUserValid
+        rw_user = await isUserValid(short_uuid)
+        if rw_user:
+            return rw_user
+        return None
 
     @staticmethod
-    async def ensure_user_exists(
-        short_uuid: str,
-        rw_user: SubscriptionInfoResponseDto,
-    ):
+    async def _ensure_local_user_from_rw(short_uuid: str, rw_user: Any):
         try:
             await Users.get(short_uuid)
         except Exception:
@@ -334,18 +333,18 @@ class Subscriptions:
 
     @staticmethod
     async def get(short_uuid: str):
+        if settings.RW_ENABLED:
+            rw_user = await Subscriptions._validate_rw_user(short_uuid)
+            if rw_user is None:
+                await Subscriptions._cleanup_user_containers(short_uuid)
+                return Response(status_code=404)
 
-        rw_user = await Subscriptions.validate_user(
-            short_uuid
-        )
-
-        if isinstance(rw_user, Response):
-            return rw_user
-
-        await Subscriptions.ensure_user_exists(
-            short_uuid,
-            rw_user,
-        )
+            await Subscriptions._ensure_local_user_from_rw(short_uuid, rw_user)
+        else:
+            try:
+                await Users.get(short_uuid)
+            except Exception:
+                return Response(status_code=404)
 
         traffic = await Users.get_traffic(short_uuid)
         if traffic.exceeded:

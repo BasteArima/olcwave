@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from auth.dependencies import get_current_admin
+from config import settings
 from users.service import Users
 from users.schemas import UserSchema, TrafficInfoSchema, TrafficLimitUpdate
 
@@ -48,6 +49,8 @@ async def reset_traffic(short_uuid: str, _admin: dict = Depends(get_current_admi
 
 @router.post("/sync")
 async def sync_from_remnawave(_admin: dict = Depends(get_current_admin)):
+    if not settings.RW_ENABLED:
+        raise HTTPException(status_code=400, detail="Remnawave is not enabled")
     res = await Users.sync_with_remnawave()
 
     return res

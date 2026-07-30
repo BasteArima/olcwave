@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { settingsApi } from '../../api/settings'
 import { useLanguage, type TranslationKey, type SupportedLanguage } from '../../i18n/useLanguage'
 import { useAuthStore } from '../../store/auth'
 
@@ -26,6 +28,12 @@ export default function Topbar() {
   const [langOpen, setLangOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
+  const { data: rwEnabled } = useQuery({
+    queryKey: ['rw-enabled'],
+    queryFn: () => settingsApi.getRwEnabled(),
+    staleTime: Infinity,
+  })
+
   useEffect(() => {
     if (!langOpen) return
     const onClick = (e: MouseEvent) => {
@@ -48,6 +56,16 @@ export default function Topbar() {
         <p className="text-xs text-text-muted truncate">{t(page.subtitleKey)}</p>
       </div>
       <div className="flex items-center gap-3 shrink-0">
+        {rwEnabled !== undefined && (
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+            rwEnabled
+              ? 'bg-accent/10 border-accent/20 text-accent'
+              : 'bg-success/10 border-success/20 text-success'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${rwEnabled ? 'bg-accent' : 'bg-success'}`} />
+            {t(rwEnabled ? 'rwModeEnabled' : 'rwModeDisabled')}
+          </div>
+        )}
         <div ref={ref} className="relative">
           <button
             type="button"
@@ -79,7 +97,7 @@ export default function Topbar() {
           )}
         </div>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20">
-          <span className="text-sm font-semibold text-accent">v1.0.5</span>
+          <span className="text-sm font-semibold text-accent">v1.0.6</span>
         </div>
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent/15 text-accent text-xs font-semibold">
           {username.charAt(0).toUpperCase() || 'A'}

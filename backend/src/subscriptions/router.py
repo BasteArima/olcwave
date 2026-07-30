@@ -1,24 +1,34 @@
 from fastapi import APIRouter, HTTPException, Response
+from config import settings
 from settings.service import SettingsService
 from subscriptions.service import Subscriptions
-from rw.sdk import isUserValid
+from users.service import Users
 
 router = APIRouter(prefix="/sub", tags=["subscriptions"])
 
+
 @router.get("/{short_uuid}/check")
 async def get_provider_name(short_uuid: str):
-    if await isUserValid(short_uuid):
-        name = SettingsService.get().sub_name
+    if settings.RW_ENABLED:
+        from rw.sdk import isUserValid
+        if not await isUserValid(short_uuid):
+            raise HTTPException(status_code=404, detail="Not found")
+    else:
+        try:
+            await Users.get(short_uuid)
+        except HTTPException:
+            raise HTTPException(status_code=404, detail="Not found")
 
-        return Response(
-            content=name,
-            media_type="text/plain"
-        )
-    raise HTTPException(status_code=404, detail="Not found")
+    name = SettingsService.get().sub_name
+
+    return Response(
+        content=name,
+        media_type="text/plain"
+    )
 
 
 @router.get("/{short_uuid}")
 async def get(short_uuid: str):
     sub = await Subscriptions.get(short_uuid)
-    
+
     return sub
