@@ -313,7 +313,7 @@ write_backend_env() {
   # printf '%s' keeps values verbatim (safe for passwords with special chars).
   {
     printf 'RW_ENABLED=%s\n'                 "$RW_ENABLED"
-    if [ "$RW_ENABLED" = "true" ]; then
+    if [ "$RW_ENABLED" = "True" ]; then
       printf 'RW_API_URL=%s\n'               "$RW_API_URL"
       printf 'RW_API_TOKEN=%s\n'             "$RW_API_TOKEN"
       printf 'RW_CADDY_TOKEN=%s\n'           "$RW_CADDY_TOKEN"
