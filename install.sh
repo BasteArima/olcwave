@@ -371,7 +371,7 @@ build_frontend() {
     else
       info "Installing dependencies (npm ci)..."
       if [ -f package-lock.json ]; then
-        npm ci
+        npm ci --no-audit
       else
         npm install
       fi
