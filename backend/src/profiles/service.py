@@ -49,7 +49,7 @@ class Profiles:
         async with async_session_factory() as db:  
             _= await ProfilesDB.update(db, tag, name, profile) 
 
-        await Containers.remove_all_by_config_tag(tag)
+        await Containers.stop_all_by_config_tag(tag)
 
     @staticmethod
     async def delete(tag: str):
