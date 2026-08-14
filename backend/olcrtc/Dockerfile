@@ -9,10 +9,11 @@ ENV PATH="/go/bin:${PATH}"
 
 WORKDIR /build
 
-RUN git clone --depth=1 https://github.com/openlibrecommunity/olcrtc.git olcrtc
+RUN git clone https://github.com/openlibrecommunity/olcrtc.git olcrtc
 
 WORKDIR /build/olcrtc
 
+RUN git reset --hard 8da02ae
 RUN mage build
 
 
