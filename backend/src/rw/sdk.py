@@ -57,6 +57,16 @@ async def getAllUsers() -> GetAllUsersResponseDto:
     )
 
 
+def isUserInSquad(user: UserResponseDto) -> bool:
+    if not settings.RW_SQUAD_NAME:
+        return True
+
+    return any(
+        settings.RW_SQUAD_NAME == squad.name or settings.RW_SQUAD_NAME == str(squad.uuid)
+        for squad in user.active_internal_squads
+    )
+
+
 async def isUserValid(short_uuid: str) -> SubscriptionInfoResponseDto | None:
     _ensure_enabled()
     sdk = _get_sdk()
@@ -70,10 +80,8 @@ async def isUserValid(short_uuid: str) -> SubscriptionInfoResponseDto | None:
         if settings.RW_SQUAD_NAME:
             user: GetUserByShortUuidResponseDto = await sdk.users.get_user_by_short_uuid(short_uuid)  # pyright: ignore[reportAssignmentType]
 
-            for squad in user.active_internal_squads:
-                if settings.RW_SQUAD_NAME == squad.name or settings.RW_SQUAD_NAME == str(squad.uuid):
-                    return sub
-            return None
+            if not isUserInSquad(user):
+                return None
 
         return sub
 
