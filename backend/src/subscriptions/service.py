@@ -77,6 +77,9 @@ class Subscriptions:
     async def profile_to_config(profile: str):
         config = yaml.safe_load(profile)
 
+        # profiles stored before `data` was dropped still carry it
+        config.pop("data", None)
+
         config["crypto"]["key"] = secrets.token_hex(32)
 
         if (

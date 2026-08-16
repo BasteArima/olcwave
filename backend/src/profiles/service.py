@@ -13,7 +13,10 @@ class Profiles:
         profile_obj: dict = yaml.safe_load(config)  
 
         profile_obj['mode'] = "srv"
-        profile_obj['data'] = "data"
+
+        # olcrtc treats `data` as an optional display-name dictionary override
+        # and fails hard when the files are missing; empty means "use embedded"
+        profile_obj.pop('data', None)
 
         if profile_obj.get('socks', None):
             profile_obj.pop('socks')
